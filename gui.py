@@ -1,6 +1,8 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel
 from PyQt5.QtCore import Qt
+import pandas as pd
+from data import Data
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -41,8 +43,25 @@ class MainWindow(QWidget):
             self.processFile(fileName)
 
     def processFile(self, filePath):
-        self.label.setText(f'Zaimportowano plik: {filePath}')
-        # Tutaj można dodać kod do przetwarzania pliku
+        # Sprawdź rozszerzenie pliku, czy to CSV
+        if not filePath.lower().endswith('.csv'):
+            self.label.setText('Zaimportowano nieobsługiwany format pliku. Proszę wybrać plik CSV.')
+            return
+
+        # Utwórz instancję klasy Data i wczytaj plik CSV
+        data_instance = Data()
+        try:
+            data_instance.read_from_csv(filePath)
+
+            # Przykładowe działanie na danych
+            data_instance.normalize_std('nazwa_kolumny')  # Normalizacja standardowa
+            # data_instance.normalize_q('nazwa_kolumny')  # Normalizacja oparta o statystyki pozycyjne
+
+            # Wyświetlenie pierwszych 5 wierszy danych w GUI
+            self.label.setText(str(data_instance.display().head()))
+
+        except Exception as e:
+            self.label.setText(f'Błąd przy przetwarzaniu pliku: {str(e)}')
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

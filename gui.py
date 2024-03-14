@@ -2,7 +2,7 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QTableWidgetItem, \
     QTableWidget, QStackedWidget
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtGui import QPixmap, QFont, QDropEvent, QDragEnterEvent
 from data import Data
 
 
@@ -51,21 +51,9 @@ class MainWindow(QWidget):
 
         self.stacked_widget.addWidget(welcome_page)
 
-    def dragEnterEvent(self, e):
-        if e.mimeData().hasUrls():
-            e.accept()
-        else:
-            e.ignore()
-
-    def dropEvent(self, e):
-        for url in e.mimeData().urls():
-            path = url.toLocalFile()
-            self.processFile(path)
-
     def open_file_name_dialog(self):
         options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getOpenFileName(self, "Wybierz plik", "",
-                                                   "Wszystkie pliki (*);;Pliki tekstowe (*.txt)", options=options)
+        file_name, _ = QFileDialog.getOpenFileName(self, "Wybierz plik", "", "Pliki csv (*.csv)", options=options)
         if file_name:
             self.process_file(file_name)
 
@@ -86,6 +74,22 @@ class MainWindow(QWidget):
 
         import_page.setLayout(layout)
         self.stacked_widget.addWidget(import_page)
+
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasUrls():
+            valid = any(url.toLocalFile().endswith('.csv') for url in e.mimeData().urls())
+            if valid:
+                e.accept()
+            else:
+                e.ignore()
+        else:
+            e.ignore()
+
+    def dropEvent(self, e):
+        for url in e.mimeData().urls():
+            path = url.toLocalFile()
+            if path.endswith('.csv'):
+                self.process_file(path)
 
     def go_to_import_page(self):
         self.stacked_widget.setCurrentIndex(1)

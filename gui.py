@@ -4,6 +4,7 @@ from PyQt5.QtCore import Qt
 import pandas as pd
 from data import Data
 
+
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -38,7 +39,8 @@ class MainWindow(QWidget):
 
     def openFileNameDialog(self):
         options = QFileDialog.Options()
-        fileName, _ = QFileDialog.getOpenFileName(self, "Wybierz plik", "", "Wszystkie pliki (*);;Pliki tekstowe (*.txt)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(self, "Wybierz plik", "",
+                                                  "Wszystkie pliki (*);;Pliki tekstowe (*.txt)", options=options)
         if fileName:
             self.processFile(fileName)
 
@@ -62,6 +64,7 @@ class MainWindow(QWidget):
 
         except Exception as e:
             self.label.setText(f'Błąd przy przetwarzaniu pliku: {str(e)}')
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

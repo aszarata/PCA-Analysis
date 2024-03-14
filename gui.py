@@ -3,55 +3,53 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFi
     QTableWidget, QStackedWidget
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont
-import pandas as pd
 from data import Data
+
 
 class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.stackedWidget = QStackedWidget()
-        self.initUI()
+        self.table_widget = None
+        self.label = None
+        self.stacked_widget = QStackedWidget()
+        self.init_ui()
         self.setAcceptDrops(True)  # Włączamy obsługę przeciągania i upuszczania pliku csv
 
-    def initUI(self):
+    def init_ui(self):
         self.setWindowTitle('PCA Analysis')
         self.setGeometry(100, 100, 400, 300)
 
-        self.initWelcomePage()
-        self.initImportPage()
+        self.init_welcome_page()
+        self.init_import_page()
 
-        mainLayout = QVBoxLayout()
-        mainLayout.addWidget(self.stackedWidget)
-        self.setLayout(mainLayout)
+        main_layout = QVBoxLayout()
+        main_layout.addWidget(self.stacked_widget)
+        self.setLayout(main_layout)
 
-    def initWelcomePage(self):
-        welcomePage = QWidget()
+    def init_welcome_page(self):
+        welcome_page = QWidget()
         layout = QVBoxLayout()
 
-        # Tworzenie etykiety
         title = QLabel("Witamy w Aplikacji PCA Analysis")
-        # Ustawianie czcionki i rozmiaru
         font = QFont()
         font.setPointSize(24)
         title.setFont(font)
-        # Wyśrodkowanie tekstu
         title.setAlignment(Qt.AlignHCenter)
 
         logo = QLabel()
-        pixmap = QPixmap("logo.png")  # Załóż, że "logo.png" to ścieżka do pliku logo
-        logo.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio))  # Dostosuj rozmiar logo
-        # Wyśrodkowanie obrazu w QLabel
+        pixmap = QPixmap("logo.png")
+        logo.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio))
         logo.setAlignment(Qt.AlignCenter)
 
-        startButton = QPushButton("Rozpocznij")
-        startButton.clicked.connect(self.goToImportPage)
+        start_button = QPushButton("Rozpocznij")
+        start_button.clicked.connect(self.go_to_import_page)
 
         layout.addWidget(title)
         layout.addWidget(logo)
-        layout.addWidget(startButton)
-        welcomePage.setLayout(layout)
+        layout.addWidget(start_button)
+        welcome_page.setLayout(layout)
 
-        self.stackedWidget.addWidget(welcomePage)
+        self.stacked_widget.addWidget(welcome_page)
 
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
@@ -64,60 +62,59 @@ class MainWindow(QWidget):
             path = url.toLocalFile()
             self.processFile(path)
 
-    def openFileNameDialog(self):
+    def open_file_name_dialog(self):
         options = QFileDialog.Options()
-        fileName, _ = QFileDialog.getOpenFileName(self, "Wybierz plik", "",
-                                                  "Wszystkie pliki (*);;Pliki tekstowe (*.txt)", options=options)
-        if fileName:
-            self.processFile(fileName)
+        file_name, _ = QFileDialog.getOpenFileName(self, "Wybierz plik", "",
+                                                   "Wszystkie pliki (*);;Pliki tekstowe (*.txt)", options=options)
+        if file_name:
+            self.process_file(file_name)
 
-    def initImportPage(self):
-        importPage = QWidget()
+    def init_import_page(self):
+        import_page = QWidget()
         layout = QVBoxLayout()
 
         self.label = QLabel("Przeciągnij plik tutaj lub kliknij przycisk poniżej.")
         self.label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.label)
 
-        self.tableWidget = QTableWidget()
-        layout.addWidget(self.tableWidget)
+        self.table_widget = QTableWidget()
+        layout.addWidget(self.table_widget)
 
         btn = QPushButton('Wybierz plik')
-        btn.clicked.connect(self.openFileNameDialog)
+        btn.clicked.connect(self.open_file_name_dialog)
         layout.addWidget(btn)
 
-        importPage.setLayout(layout)
-        self.stackedWidget.addWidget(importPage)
+        import_page.setLayout(layout)
+        self.stacked_widget.addWidget(import_page)
 
-    def goToImportPage(self):
-        self.stackedWidget.setCurrentIndex(1)
+    def go_to_import_page(self):
+        self.stacked_widget.setCurrentIndex(1)
 
-    def processFile(self, filePath):
-        # Sprawdź rozszerzenie pliku, czy to CSV
-        if not filePath.lower().endswith('.csv'):
+    def process_file(self, file_path):
+        if not file_path.lower().endswith('.csv'):
             self.label.setText('Zaimportowano nieobsługiwany format pliku. Proszę wybrać plik CSV.')
             return
         data_instance = Data()
         try:
-            data_instance.read_from_csv(filePath)
-            self.displayDataInTable(data_instance.display())
+            data_instance.read_from_csv(file_path)
+            self.display_data_in_table(data_instance.display())
 
         except Exception as e:
             print(f'Błąd przy przetwarzaniu pliku: {str(e)}')
 
-    def displayDataInTable(self, df):
-        self.tableWidget.setRowCount(df.shape[0])
-        self.tableWidget.setColumnCount(df.shape[1])
-        self.tableWidget.setHorizontalHeaderLabels(df.columns)
+    def display_data_in_table(self, df):
+        self.table_widget.setRowCount(df.shape[0])
+        self.table_widget.setColumnCount(df.shape[1])
+        self.table_widget.setHorizontalHeaderLabels(df.columns)
 
         for i, row in df.iterrows():
             for j, value in enumerate(row):
                 item = QTableWidgetItem(str(value))
                 # Zmiana flagi elementu, aby nie był edytowalny
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-                self.tableWidget.setItem(i, j, item)
+                self.table_widget.setItem(i, j, item)
 
-        self.tableWidget.resizeColumnsToContents()
+        self.table_widget.resizeColumnsToContents()
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
 import pandas as pd
 
+
 class Data:
 
     def __init__(self):
@@ -34,5 +35,3 @@ class Data:
         q25 = self.df[variable_name].quantile(0.25)
         q75 = self.df[variable_name].quantile(0.75)
         self.df[variable_name] = (self.df[variable_name] - q25) / (q75 - q25)
-
-

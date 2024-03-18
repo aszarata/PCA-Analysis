@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFi
     QTableWidget, QStackedWidget
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont, QDropEvent, QDragEnterEvent
-from data import Data
+from PCA_data_menager import PCADataMenager
 
 
 class MainWindow(QWidget):
@@ -98,7 +98,7 @@ class MainWindow(QWidget):
         if not file_path.lower().endswith('.csv'):
             self.label.setText('Zaimportowano nieobsługiwany format pliku. Proszę wybrać plik CSV.')
             return
-        data_instance = Data()
+        data_instance = PCADataMenager()
         try:
             data_instance.read_from_csv(file_path)
             self.display_data_in_table(data_instance.display())

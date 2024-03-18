@@ -1,20 +1,22 @@
 import pandas as pd
+from sklearn.decomposition import PCA
 
 
 class PCADataMenager:
 
-    def __init__(self):
-        self.input_df = None
-        self.df = None
+    def __init__(self, data: pd.DataFrame=None)-> None:
+        self.input_df = data
+        self.df = data
 
         # DataFrame jedną operację wstecz
-        self.df_last = None
+        self.df_last = data
 
     # Główne funkcje
 
     # Wczytanie z pliku csv
-    def read_from_csv(self, filename: str, sep: str=';') -> None:
-        self.input_df = pd.read_csv(filename, sep=sep)
+    def read_from_csv(self, filename: str, sep: str=';', header: int=0) -> None:
+        self.input_df = pd.read_csv(filename, sep=sep, header=header)
+        self.input_df.columns = self.input_df.columns.astype(str)
         self.df = self.input_df.copy()
 
     # Wyswietlenie dataframe
@@ -32,7 +34,7 @@ class PCADataMenager:
     # Zapisanie aktualnego stanu do zmiennej df_last
     def save(self) -> None:
         self.df_last = self.df.copy()    
-        
+
 
     # Zmienne
 
@@ -61,6 +63,12 @@ class PCADataMenager:
         q75 = self.df[variable_name].quantile(0.75)
         self.df[variable_name] = (self.df[variable_name] - q25) / (q75 - q25)
 
+    # Standaryzacja calego zbioru danych (wszystkie cechy nueryczne)
+    def standarize_dataset(self) -> None:
+        for variable in self.df.columns:
+            if self.get_variable_type(variable) == 'numerical':
+                self.normalize_std(variable)
+
     # One-Hot Ecoding zmiennej
     def one_hot_encode(self, variable_name: str) -> None:
 
@@ -79,3 +87,16 @@ class PCADataMenager:
         if variable_type != 'object':
             return 'numerical'
         return 'categorial'
+    
+
+        # PCA
+    
+    # Funkcja wykonujaca anlize PCA zwracająca osobny obiekt PCADataMenager.
+    def PCA(self, n_components: int) -> object:
+        pca_data = PCA(n_components=n_components)
+        principal_components = pca_data.fit_transform(self.df)
+        columns = [f'pc{i}' for i in range(n_components)]
+        pca_df = pd.DataFrame(data=principal_components, columns=columns)
+
+        return PCADataMenager(pca_df)
+

@@ -168,6 +168,12 @@ class MainWindow(QWidget):
         delete_button.clicked.connect(self.open_delete_dialog)
         layout.addWidget(delete_button)
 
+        # guzik do resetu do stanu poczatkowego
+        # Add reset button here
+        reset_button = QPushButton('Resetuj dane')
+        reset_button.clicked.connect(self.reset_data)
+        layout.addWidget(reset_button)
+
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
             valid = any(url.toLocalFile().endswith('.csv') for url in e.mimeData().urls())
@@ -191,9 +197,17 @@ class MainWindow(QWidget):
         if not file_path.lower().endswith('.csv'):
             self.label.setText('Zaimportowano nieobsługiwany format pliku. Proszę wybrać plik CSV.')
             return
-        # data_instance = DataManager()
+
         try:
-            self.data_instance.read_from_csv(file_path)
+            # Próba wykrycia separatora poprzez odczytanie pierwszej linii pliku
+            with open(file_path, 'r', encoding='utf-8') as file:
+                first_line = file.readline()
+                if ',' in first_line and ';' not in first_line:
+                    sep = ','
+                else:
+                    sep = ';'
+
+            self.data_instance.read_from_csv(file_path, sep=sep)  # Użycie wykrytego separatora
             self.display_data_in_table(self.data_instance.get_df())
 
         except Exception as e:
@@ -220,6 +234,10 @@ class MainWindow(QWidget):
     def open_delete_dialog(self):
         self.delete_dialog = DeleteDialog(self)
         self.delete_dialog.show()
+
+    def reset_data(self):
+        self.data_instance.reset()  # Call reset method from DataManager
+        self.display_data_in_table(self.data_instance.get_df())  # Refresh the table to show the reset data
 
 
 if __name__ == '__main__':

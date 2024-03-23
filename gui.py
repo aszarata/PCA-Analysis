@@ -4,7 +4,68 @@ from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFi
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont, QDropEvent, QDragEnterEvent
 from PyQt5.QtWidgets import QComboBox
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 from app_backend.data_manager import DataManager
+
+class PCAResultsDialog(QDialog):
+    def __init__(self, pca_handler, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('Wyniki Analizy PCA')
+        self.setGeometry(100, 100, 600, 500)
+        self.pca_handler = pca_handler
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+
+        # Tworzenie widgetu MplCanvas
+        sc = MplCanvas(self, width=5, height=4, dpi=100)
+        self.pca_handler.plot_2d('pc1', 'pc2', 'PCA - Pierwsze dwa komponenty', ax=sc.axes)
+
+        layout.addWidget(sc)
+
+class MplCanvas(FigureCanvas):
+    def __init__(self, parent=None, width=5, height=4, dpi=100):
+        fig = Figure(figsize=(width, height), dpi=dpi)
+        self.axes = fig.add_subplot(111)
+        super(MplCanvas, self).__init__(fig)
+
+class PCADialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.data_instance = parent.data_instance  # Access DataManager instance
+        self.init_ui()
+
+    def init_ui(self):
+        self.setWindowTitle('Analiza PCA')
+        self.setGeometry(100, 100, 300, 100)
+
+        layout = QVBoxLayout()
+        form_layout = QHBoxLayout()
+
+        self.components_label = QLabel("Liczba komponentów:")
+        self.components_input = QLineEdit()
+
+        form_layout.addWidget(self.components_label)
+        form_layout.addWidget(self.components_input)
+
+        self.pca_button = QPushButton("Uruchom PCA")
+        self.pca_button.clicked.connect(self.run_pca)
+
+        layout.addLayout(form_layout)
+        layout.addWidget(self.pca_button)
+        self.setLayout(layout)
+
+    def run_pca(self):
+        n_components = int(self.components_input.text())
+        if n_components > 0:
+            self.data_instance.save() #
+            pca_handler = self.data_instance.PCA(n_components)
+            self.parent().display_pca_results(pca_handler)
+            self.close()
+        else:
+            print("Wprowadź poprawną liczbę komponentów.")
 
 class TypeDialog(QDialog):
     def __init__(self, parent=None):
@@ -236,6 +297,16 @@ class MainWindow(QWidget):
         standarize_button.clicked.connect(self.open_standarize_dataset_dialog)
         layout.addWidget(standarize_button)
 
+        # guzik do one-hot-encode
+        onehot_encode_button = QPushButton('One-hot-encode')
+        onehot_encode_button.clicked.connect(self.open_onehot_encode_dialog)
+        layout.addWidget(onehot_encode_button)
+
+        # guzik do uruchamiania analizy PCA
+        pca_button = QPushButton('Uruchom Analizę PCA')
+        pca_button.clicked.connect(self.open_pca_dialog)
+        layout.addWidget(pca_button)
+
         import_page.setLayout(layout)
         self.stacked_widget.addWidget(import_page)
 
@@ -370,6 +441,51 @@ class MainWindow(QWidget):
             QMessageBox.information(self, "Normalizacja", "Cały zbiór danych został znormalizowany.")
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zbioru danych: {e}")
+
+    def open_onehot_encode_dialog(self):
+        variable_name, ok = QInputDialog.getItem(self, "Wybierz zmienną do kodowania One-Hot", "Zmienna:",
+                                                 self.data_instance.get_df().columns.tolist(), 0, False)
+        if ok and variable_name:
+            self.onehot_encode(variable_name)
+
+    def onehot_encode(self, variable_name):
+        try:
+            self.data_instance.save()  # Save the current state for possible undo functionality
+            self.data_instance.one_hot_encode(variable_name)
+            self.display_data_in_table(
+                self.data_instance.get_df())  # Refresh the table to show the one-hot encoded data
+            QMessageBox.information(self, "Kodowanie One-Hot",
+                                    f"Zmienna '{variable_name}' została zakodowana metodą One-Hot.")
+        except Exception as e:
+            QMessageBox.critical(self, "Błąd",
+                                 f"Nie udało się zakodować zmiennej '{variable_name}' metodą One-Hot: {e}")
+
+    def open_pca_dialog(self):
+        self.pca_dialog = PCADialog(self)
+        self.pca_dialog.show()
+
+    # def display_pca_results(self, pca_handler):
+    #     self.display_data_in_table(pca_handler.get_df())
+    #
+    #     # Tworzenie widgetu MplCanvas
+    #     sc = MplCanvas(self, width=5, height=4, dpi=100)
+    #     pca_handler.plot_2d('pc1', 'pc2', 'PCA - Pierwsze dwa komponenty', ax=sc.axes)
+    #
+    #     # Opcjonalnie: dodanie widgetu MplCanvas do layoutu
+    #     # Możesz dodać MplCanvas do istniejącego layoutu w swoim interfejsie użytkownika
+    #     # Na przykład, dodając go do layoutu QVBoxLayout:
+    #     layout = QVBoxLayout()  # lub odwołaj się do istniejącego layoutu
+    #     layout.addWidget(sc)
+    #     # Ustawienie layoutu na odpowiedni widget lub dialog
+    #     #self.setLayout(layout)  # Jeśli tworzysz nowe okno/dialog
+    #     # lub dodaj MplCanvas bezpośrednio do istniejącego layoutu w MainWindow
+
+    def display_pca_results(self, pca_handler):
+        self.display_data_in_table(pca_handler.get_df())
+
+        # Uruchomienie dialogu z wynikami PCA
+        pca_results_dialog = PCAResultsDialog(pca_handler, self)
+        pca_results_dialog.exec_()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

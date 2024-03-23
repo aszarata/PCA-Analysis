@@ -1,10 +1,92 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QTableWidgetItem, \
-    QTableWidget, QStackedWidget
+    QTableWidget, QStackedWidget, QDialog, QHBoxLayout, QLineEdit
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont, QDropEvent, QDragEnterEvent
 from app_backend.data_manager import DataManager
 
+
+class RenameDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.data_instance = parent.data_instance  # Ensure you have data_instance available in MainWindow
+        self.init_ui()
+
+    def init_ui(self):
+        self.setWindowTitle('Zmień nazwę zmiennej')
+        self.setGeometry(100, 100, 300, 100)
+
+        layout = QVBoxLayout()
+        form_layout = QHBoxLayout()
+
+        self.old_name_label = QLabel("Stara nazwa:")
+        self.old_name_input = QLineEdit()
+
+        self.new_name_label = QLabel("Nowa nazwa:")
+        self.new_name_input = QLineEdit()
+
+        form_layout.addWidget(self.old_name_label)
+        form_layout.addWidget(self.old_name_input)
+        form_layout.addWidget(self.new_name_label)
+        form_layout.addWidget(self.new_name_input)
+
+        self.rename_button = QPushButton("Zmień nazwę")
+        self.rename_button.clicked.connect(self.rename_variable)
+
+        layout.addLayout(form_layout)
+        layout.addWidget(self.rename_button)
+        self.setLayout(layout)
+
+    def rename_variable(self):
+        old_name = self.old_name_input.text()
+        new_name = self.new_name_input.text()
+        if old_name and new_name:
+            try:
+                self.data_instance.rename_variable(old_name, new_name)
+                self.parent().display_data_in_table(self.data_instance.get_df())  # Refresh the table in MainWindow
+                self.close()
+            except Exception as e:
+                print(f'Error renaming variable: {e}')
+        else:
+            print("Please enter both old and new names.")
+
+class DeleteDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.data_instance = parent.data_instance  # Access to DataManager instance
+        self.init_ui()
+
+    def init_ui(self):
+        self.setWindowTitle('Usuń zmienną')
+        self.setGeometry(100, 100, 300, 100)
+
+        layout = QVBoxLayout()
+        form_layout = QHBoxLayout()
+
+        self.variable_name_label = QLabel("Nazwa zmiennej:")
+        self.variable_name_input = QLineEdit()
+
+        form_layout.addWidget(self.variable_name_label)
+        form_layout.addWidget(self.variable_name_input)
+
+        self.delete_button = QPushButton("Usuń")
+        self.delete_button.clicked.connect(self.delete_variable)
+
+        layout.addLayout(form_layout)
+        layout.addWidget(self.delete_button)
+        self.setLayout(layout)
+
+    def delete_variable(self):
+        variable_name = self.variable_name_input.text()
+        if variable_name:
+            try:
+                self.data_instance.delete_variable(variable_name)
+                self.parent().display_data_in_table(self.data_instance.get_df())  # Refresh the table in MainWindow
+                self.close()
+            except Exception as e:
+                print(f'Error deleting variable: {e}')
+        else:
+            print("Please enter the name of the variable to delete.")
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -13,6 +95,7 @@ class MainWindow(QWidget):
         self.label = None
         self.stacked_widget = QStackedWidget()
         self.init_ui()
+        self.data_instance = DataManager()
         self.setAcceptDrops(True)  # Włączamy obsługę przeciągania i upuszczania pliku csv
 
     def init_ui(self):
@@ -75,6 +158,16 @@ class MainWindow(QWidget):
         import_page.setLayout(layout)
         self.stacked_widget.addWidget(import_page)
 
+        # guzik do zmiany nazwy zmiennej
+        rename_button = QPushButton('Zmień nazwę zmiennej')
+        rename_button.clicked.connect(self.open_rename_dialog)
+        layout.addWidget(rename_button)
+
+        # guzik do usuwania nazwy zmiennej
+        delete_button = QPushButton('Usuń zmienną')
+        delete_button.clicked.connect(self.open_delete_dialog)
+        layout.addWidget(delete_button)
+
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
             valid = any(url.toLocalFile().endswith('.csv') for url in e.mimeData().urls())
@@ -98,10 +191,10 @@ class MainWindow(QWidget):
         if not file_path.lower().endswith('.csv'):
             self.label.setText('Zaimportowano nieobsługiwany format pliku. Proszę wybrać plik CSV.')
             return
-        data_instance = DataManager()
+        # data_instance = DataManager()
         try:
-            data_instance.read_from_csv(file_path)
-            self.display_data_in_table(data_instance.get_df())
+            self.data_instance.read_from_csv(file_path)
+            self.display_data_in_table(self.data_instance.get_df())
 
         except Exception as e:
             print(f'Błąd przy przetwarzaniu pliku: {str(e)}')
@@ -119,6 +212,14 @@ class MainWindow(QWidget):
                 self.table_widget.setItem(i, j, item)
 
         self.table_widget.resizeColumnsToContents()
+
+    def open_rename_dialog(self):
+        self.rename_dialog = RenameDialog(self)
+        self.rename_dialog.show()
+
+    def open_delete_dialog(self):
+        self.delete_dialog = DeleteDialog(self)
+        self.delete_dialog.show()
 
 
 if __name__ == '__main__':

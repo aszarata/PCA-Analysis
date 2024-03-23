@@ -1,6 +1,6 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QTableWidgetItem, \
-    QTableWidget, QStackedWidget, QDialog, QHBoxLayout, QLineEdit, QMessageBox
+    QTableWidget, QStackedWidget, QDialog, QHBoxLayout, QLineEdit, QMessageBox, QInputDialog
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont, QDropEvent, QDragEnterEvent
 from PyQt5.QtWidgets import QComboBox
@@ -211,11 +211,6 @@ class MainWindow(QWidget):
         undo_button.clicked.connect(self.undo_changes)
         layout.addWidget(undo_button)
 
-        # # guzik do zapisywania zmian
-        # save_button = QPushButton('Zapisz zmiany')
-        # save_button.clicked.connect(self.save_changes)
-        # layout.addWidget(save_button)
-
         # guzik do wyswietlenia nazwy zmiennej
         self.type_button = QPushButton('Sprawdź typ zmiennej')
         self.type_button.clicked.connect(self.open_type_dialog)
@@ -225,6 +220,21 @@ class MainWindow(QWidget):
         types_button = QPushButton('Pokaż typy zmiennych')
         types_button.clicked.connect(self.display_variable_types)
         layout.addWidget(types_button)
+
+        # guzik do normalizacji_std
+        normalize_std_button = QPushButton('Normalizuj zmienną (std)')
+        normalize_std_button.clicked.connect(self.open_normalize_std_dialog)
+        layout.addWidget(normalize_std_button)
+
+        # guzik do normalizacji_q
+        normalize_q_button = QPushButton('Normalizuj zmienną (q)')
+        normalize_q_button.clicked.connect(self.open_normalize_q_dialog)
+        layout.addWidget(normalize_q_button)
+
+        # guzik do standaryzacji
+        standarize_button = QPushButton('Standaryzuj dataset')
+        standarize_button.clicked.connect(self.open_standarize_dataset_dialog)
+        layout.addWidget(standarize_button)
 
         import_page.setLayout(layout)
         self.stacked_widget.addWidget(import_page)
@@ -298,19 +308,11 @@ class MainWindow(QWidget):
 
     def undo_changes(self):
         try:
-            self.data_instance.undo()  # Wywołanie metody undo z DataManager
-            self.display_data_in_table(self.data_instance.get_df())  # Odświeżenie danych w tabeli
+            self.data_instance.undo()
+            self.display_data_in_table(self.data_instance.get_df())
             QMessageBox.information(self, "Cofnięto zmiany", "Zmiany zostały cofnięte do ostatniego zapisanego stanu.")
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Nie udało się cofnąć zmian: {e}")
-
-    # def save_changes(self):
-    #     try:
-    #         self.data_instance.save()
-    #         # Optionally, display a message or refresh the table if needed
-    #         print("Zmiany zostały zapisane.")
-    #     except Exception as e:
-    #         print(f'Błąd przy zapisywaniu zmian: {str(e)}')
 
     def open_type_dialog(self):
         self.type_dialog = TypeDialog(self)
@@ -323,6 +325,51 @@ class MainWindow(QWidget):
             QMessageBox.information(self, "Typy Zmiennych", message)
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Nie udało się wyświetlić typów zmiennych: {e}")
+
+    def open_normalize_std_dialog(self):
+        variable_name, ok = QInputDialog.getItem(self, "Wybierz zmienną do normalizacji", "Zmienna:",
+                                                 self.data_instance.get_df().columns.tolist(), 0, False)
+        if ok and variable_name:
+            self.normalize_std_variable(variable_name)
+
+    def normalize_std_variable(self, variable_name):
+        try:
+            self.data_instance.save()
+            self.data_instance.normalize_std(variable_name)
+            self.display_data_in_table(self.data_instance.get_df())  # Refresh the table to show the normalized data
+            QMessageBox.information(self, "Normalizacja", f"Zmienna '{variable_name}' została znormalizowana.")
+        except Exception as e:
+            QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zmiennej: {e}")
+
+    def open_normalize_q_dialog(self):
+        variable_name, ok = QInputDialog.getItem(self, "Wybierz zmienną do normalizacji", "Zmienna:",
+                                                 self.data_instance.get_df().columns.tolist(), 0, False)
+        if ok and variable_name:
+            self.normalize_q_variable(variable_name)
+
+    def normalize_q_variable(self, variable_name):
+        try:
+            self.data_instance.save()
+            self.data_instance.normalize_q(variable_name)
+            self.display_data_in_table(self.data_instance.get_df())  # Refresh the table to show the normalized data
+            QMessageBox.information(self, "Normalizacja", f"Zmienna '{variable_name}' została znormalizowana.")
+        except Exception as e:
+            QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zmiennej: {e}")
+
+    def open_standarize_dataset_dialog(self):
+        reply = QMessageBox.question(self, 'Potwierdzenie', "Czy na pewno chcesz znormalizować cały zbiór danych?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.standarize_dataset()
+
+    def standarize_dataset(self):
+        try:
+            self.data_instance.save()
+            self.data_instance.standarize_dataset()
+            self.display_data_in_table(self.data_instance.get_df())  # Refresh the table to show the standardized data
+            QMessageBox.information(self, "Normalizacja", "Cały zbiór danych został znormalizowany.")
+        except Exception as e:
+            QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zbioru danych: {e}")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

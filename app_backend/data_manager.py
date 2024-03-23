@@ -120,6 +120,7 @@ class DataManager:
         mean_value = self.df[variable_name].mean()
         std_value = self.df[variable_name].std()
         self.df[variable_name] = (self.df[variable_name] - mean_value) / std_value
+        self.save() #aby zmiany sie od razu zapisaly
 
     # Normalize a variable based on quantiles
     def normalize_q(self, variable_name: str) -> None:

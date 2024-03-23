@@ -72,8 +72,9 @@ class RenameDialog(QDialog):
         new_name = self.new_name_input.text()
         if old_name and new_name:
             try:
+                self.data_instance.save()
                 self.data_instance.rename_variable(old_name, new_name)
-                self.parent().display_data_in_table(self.data_instance.get_df())  # Refresh the table in MainWindow
+                self.parent().display_data_in_table(self.data_instance.get_df())
                 self.close()
             except Exception as e:
                 print(f'Error renaming variable: {e}')
@@ -110,8 +111,9 @@ class DeleteDialog(QDialog):
         variable_name = self.variable_name_input.text()
         if variable_name:
             try:
+                self.data_instance.save()
                 self.data_instance.delete_variable(variable_name)
-                self.parent().display_data_in_table(self.data_instance.get_df())  # Refresh the table in MainWindow
+                self.parent().display_data_in_table(self.data_instance.get_df())
                 self.close()
             except Exception as e:
                 print(f'Error deleting variable: {e}')
@@ -209,10 +211,10 @@ class MainWindow(QWidget):
         undo_button.clicked.connect(self.undo_changes)
         layout.addWidget(undo_button)
 
-        # guzik do zapisywania zmian
-        save_button = QPushButton('Zapisz zmiany')
-        save_button.clicked.connect(self.save_changes)
-        layout.addWidget(save_button)
+        # # guzik do zapisywania zmian
+        # save_button = QPushButton('Zapisz zmiany')
+        # save_button.clicked.connect(self.save_changes)
+        # layout.addWidget(save_button)
 
         # guzik do wyswietlenia nazwy zmiennej
         self.type_button = QPushButton('Sprawdź typ zmiennej')
@@ -267,6 +269,8 @@ class MainWindow(QWidget):
             print(f'Błąd przy przetwarzaniu pliku: {str(e)}')
 
     def display_data_in_table(self, df):
+        if df is None:
+            df = self.data_instance.get_df()
         self.table_widget.setRowCount(df.shape[0])
         self.table_widget.setColumnCount(df.shape[1])
         self.table_widget.setHorizontalHeaderLabels(df.columns)
@@ -294,18 +298,19 @@ class MainWindow(QWidget):
 
     def undo_changes(self):
         try:
-            self.data_instance.undo()
-            self.display_data_in_table(self.data_instance.get_df())
+            self.data_instance.undo()  # Wywołanie metody undo z DataManager
+            self.display_data_in_table(self.data_instance.get_df())  # Odświeżenie danych w tabeli
+            QMessageBox.information(self, "Cofnięto zmiany", "Zmiany zostały cofnięte do ostatniego zapisanego stanu.")
         except Exception as e:
-            print(f'Błąd przy cofaniu zmian: {str(e)}')
+            QMessageBox.critical(self, "Błąd", f"Nie udało się cofnąć zmian: {e}")
 
-    def save_changes(self):
-        try:
-            self.data_instance.save()
-            # Optionally, display a message or refresh the table if needed
-            print("Zmiany zostały zapisane.")
-        except Exception as e:
-            print(f'Błąd przy zapisywaniu zmian: {str(e)}')
+    # def save_changes(self):
+    #     try:
+    #         self.data_instance.save()
+    #         # Optionally, display a message or refresh the table if needed
+    #         print("Zmiany zostały zapisane.")
+    #     except Exception as e:
+    #         print(f'Błąd przy zapisywaniu zmian: {str(e)}')
 
     def open_type_dialog(self):
         self.type_dialog = TypeDialog(self)

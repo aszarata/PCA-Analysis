@@ -1,10 +1,40 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QTableWidgetItem, \
-    QTableWidget, QStackedWidget, QDialog, QHBoxLayout, QLineEdit
+    QTableWidget, QStackedWidget, QDialog, QHBoxLayout, QLineEdit, QMessageBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont, QDropEvent, QDragEnterEvent
+from PyQt5.QtWidgets import QComboBox
 from app_backend.data_manager import DataManager
 
+class TypeDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.data_instance = parent.data_instance  # Access DataManager instance
+        self.init_ui()
+
+    def init_ui(self):
+        self.setWindowTitle('Sprawdź typ zmiennej')
+        self.setGeometry(100, 100, 300, 100)
+
+        layout = QVBoxLayout()
+
+        self.variable_combo = QComboBox()
+        self.variable_combo.addItems(self.data_instance.get_df().columns)
+
+        self.type_label = QLabel("Typ: Nie wybrano")
+        self.check_button = QPushButton("Sprawdź typ")
+        self.check_button.clicked.connect(self.display_variable_type)
+
+        layout.addWidget(self.variable_combo)
+        layout.addWidget(self.type_label)
+        layout.addWidget(self.check_button)
+
+        self.setLayout(layout)
+
+    def display_variable_type(self):
+        variable_name = self.variable_combo.currentText()
+        variable_type = self.data_instance.get_variable_type(variable_name)
+        self.type_label.setText(f"Typ: {variable_type}")
 
 class RenameDialog(QDialog):
     def __init__(self, parent=None):
@@ -174,6 +204,29 @@ class MainWindow(QWidget):
         reset_button.clicked.connect(self.reset_data)
         layout.addWidget(reset_button)
 
+        # guzik do cofania zmian do poprzednio zapisanego stanu
+        undo_button = QPushButton('Cofnij zmiany')
+        undo_button.clicked.connect(self.undo_changes)
+        layout.addWidget(undo_button)
+
+        # guzik do zapisywania zmian
+        save_button = QPushButton('Zapisz zmiany')
+        save_button.clicked.connect(self.save_changes)
+        layout.addWidget(save_button)
+
+        # guzik do wyswietlenia nazwy zmiennej
+        self.type_button = QPushButton('Sprawdź typ zmiennej')
+        self.type_button.clicked.connect(self.open_type_dialog)
+        layout.addWidget(self.type_button)  # Assuming you have a layout named main_layout
+
+        # guzik do wyświetlania typów wszystkich zmiennych
+        types_button = QPushButton('Pokaż typy zmiennych')
+        types_button.clicked.connect(self.display_variable_types)
+        layout.addWidget(types_button)
+
+        import_page.setLayout(layout)
+        self.stacked_widget.addWidget(import_page)
+
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
             valid = any(url.toLocalFile().endswith('.csv') for url in e.mimeData().urls())
@@ -239,6 +292,32 @@ class MainWindow(QWidget):
         self.data_instance.reset()  # Call reset method from DataManager
         self.display_data_in_table(self.data_instance.get_df())  # Refresh the table to show the reset data
 
+    def undo_changes(self):
+        try:
+            self.data_instance.undo()
+            self.display_data_in_table(self.data_instance.get_df())
+        except Exception as e:
+            print(f'Błąd przy cofaniu zmian: {str(e)}')
+
+    def save_changes(self):
+        try:
+            self.data_instance.save()
+            # Optionally, display a message or refresh the table if needed
+            print("Zmiany zostały zapisane.")
+        except Exception as e:
+            print(f'Błąd przy zapisywaniu zmian: {str(e)}')
+
+    def open_type_dialog(self):
+        self.type_dialog = TypeDialog(self)
+        self.type_dialog.show()
+
+    def display_variable_types(self):
+        try:
+            types = self.data_instance.get_variable_types()
+            message = "Typy zmiennych:\n" + "\n".join([f"{var}: {typ}" for var, typ in types.items()])
+            QMessageBox.information(self, "Typy Zmiennych", message)
+        except Exception as e:
+            QMessageBox.critical(self, "Błąd", f"Nie udało się wyświetlić typów zmiennych: {e}")
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

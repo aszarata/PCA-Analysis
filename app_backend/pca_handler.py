@@ -44,6 +44,34 @@ class PCAHandler:
     #
     #     return plt
 
+    # def plot_2d(self, x_component: str, y_component: str, title: str = None, ax=None):
+    #     """
+    #     Generates a 2D scatter plot on the given axes.
+    #
+    #     Args:
+    #         x_component (str): Name of the component for x-axis.
+    #         y_component (str): Name of the component for y-axis.
+    #         title (str, optional): Title of the plot. Defaults to None.
+    #         ax (matplotlib.axes.Axes, optional): Axes object on which to draw the plot. Defaults to None.
+    #
+    #     Returns:
+    #         matplotlib.axes.Axes: The axes object with the plot.
+    #     """
+    #     if ax is None:
+    #         fig, ax = plt.subplots()  # Create a new figure and axes if not provided
+    #
+    #     scatter = ax.scatter(self.df[x_component], self.df[y_component], alpha=0.5, c=self.labels)
+    #
+    #     ax.set_xlabel(x_component)
+    #     ax.set_ylabel(y_component)
+    #     ax.set_title(title)
+    #
+    #     # Optionally, if you have labels for the colors, you can add a legend:
+    #     # legend1 = ax.legend(*scatter.legend_elements(), title="Clusters")
+    #     # ax.add_artist(legend1)
+    #
+    #     return ax
+
     def plot_2d(self, x_component: str, y_component: str, title: str = None, ax=None):
         """
         Generates a 2D scatter plot on the given axes.
@@ -51,7 +79,7 @@ class PCAHandler:
         Args:
             x_component (str): Name of the component for x-axis.
             y_component (str): Name of the component for y-axis.
-            title (str, optional): Title of the plot. Defaults to None.
+            title (str, optional): Title of the plot. If None, the title will be automatically generated based on the PCA components. Defaults to None.
             ax (matplotlib.axes.Axes, optional): Axes object on which to draw the plot. Defaults to None.
 
         Returns:
@@ -64,6 +92,11 @@ class PCAHandler:
 
         ax.set_xlabel(x_component)
         ax.set_ylabel(y_component)
+
+        # Automatically generate title if not provided
+        if title is None:
+            num_components = len(self.df.columns)
+            title = f'PCA Analysis: Plot of {x_component} vs {y_component} - {num_components} Components'
         ax.set_title(title)
 
         # Optionally, if you have labels for the colors, you can add a legend:
@@ -71,6 +104,24 @@ class PCAHandler:
         # ax.add_artist(legend1)
 
         return ax
+
+    # extra method
+    def plot_all_2d_combinations(self, components: list, title_prefix: str = 'PCA Analysis'):
+        """
+        Generates 2D scatter plots for all combinations of the specified components.
+
+        Args:
+            components (list): List of component names (strings) to be combined and plotted.
+            title_prefix (str): Prefix for the plot title.
+        """
+        fig, axes = plt.subplots(nrows=len(components), ncols=len(components) // 2, figsize=(15, 10))
+        axes = axes.flatten()  # Flatten in case of single row/column to simplify indexing
+
+        for i, (x_component, y_component) in enumerate(combinations(components, 2)):
+            self.plot_2d(x_component, y_component, title=f'{title_prefix}: {x_component} vs {y_component}', ax=axes[i])
+
+        plt.tight_layout()
+        plt.show()
 
     # K-means clustering
     def kmeans_clustering(self, num_clusters: int) -> None:

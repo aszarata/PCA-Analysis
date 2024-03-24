@@ -9,6 +9,22 @@ from matplotlib.figure import Figure
 from app_backend.data_manager import DataManager
 
 
+# class PCAResultsDialog(QDialog):
+#     def __init__(self, pca_handler, parent=None):
+#         super().__init__(parent)
+#         self.setWindowTitle('Wyniki Analizy PCA')
+#         self.setGeometry(100, 100, 600, 500)
+#         self.pca_handler = pca_handler
+#         self.init_ui()
+#
+#     def init_ui(self):
+#         layout = QVBoxLayout(self)
+#
+#         # Tworzenie widgetu MplCanvas
+#         sc = MplCanvas(self, width=5, height=4, dpi=100)
+#         self.pca_handler.plot_2d('pc1', 'pc2', 'PCA - Pierwsze dwa komponenty', ax=sc.axes)
+#
+#         layout.addWidget(sc)
 class PCAResultsDialog(QDialog):
     def __init__(self, pca_handler, parent=None):
         super().__init__(parent)
@@ -20,12 +36,56 @@ class PCAResultsDialog(QDialog):
     def init_ui(self):
         layout = QVBoxLayout(self)
 
+        # Dodajemy elementy UI do wyboru składowych PCA
+        components_layout = QHBoxLayout()
+        self.component_x_combo = QComboBox()
+        self.component_y_combo = QComboBox()
+
+        # Wypełniamy QComboBox możliwymi do wyboru składowymi
+        components = [f'pc{i+1}' for i in range(len(self.pca_handler.get_df().columns))]
+        self.component_x_combo.addItems(components)
+        self.component_y_combo.addItems(components)
+
+        # Ustawiamy domyślnie wybrane opcje (pierwsze dwie składowe)
+        self.component_x_combo.setCurrentIndex(0)
+        self.component_y_combo.setCurrentIndex(1)
+
+        components_layout.addWidget(QLabel("Składowa X:"))
+        components_layout.addWidget(self.component_x_combo)
+        components_layout.addWidget(QLabel("Składowa Y:"))
+        components_layout.addWidget(self.component_y_combo)
+
+        layout.addLayout(components_layout)
+
+        # Przycisk do generowania wykresu
+        plot_button = QPushButton('Generuj Wykres')
+        plot_button.clicked.connect(self.update_plot)
+        layout.addWidget(plot_button)
+
         # Tworzenie widgetu MplCanvas
-        sc = MplCanvas(self, width=5, height=4, dpi=100)
-        self.pca_handler.plot_2d('pc1', 'pc2', 'PCA - Pierwsze dwa komponenty', ax=sc.axes)
+        self.sc = MplCanvas(self, width=5, height=4, dpi=100)
+        layout.addWidget(self.sc)
 
-        layout.addWidget(sc)
+        self.update_plot()  # Wygeneruj wykres przy pierwszym uruchomieniu
 
+    # def update_plot(self):
+    #     x_component = self.component_x_combo.currentText()
+    #     y_component = self.component_y_combo.currentText()
+    #     self.pca_handler.plot_2d(x_component, y_component, f'PCA - {x_component} vs {y_component}', ax=self.sc.axes)
+    #     self.sc.draw()  # Odświeżamy widget MplCanvas, aby wyświetlić nowy wykres
+
+    def update_plot(self):
+        x_component = self.component_x_combo.currentText()
+        y_component = self.component_y_combo.currentText()
+
+        # Wyczyść obecne osie przed generowaniem nowego wykresu
+        self.sc.axes.clear()
+
+        # Generowanie nowego wykresu dla wybranych składowych
+        self.pca_handler.plot_2d(x_component, y_component, f'PCA - {x_component} vs {y_component}', ax=self.sc.axes)
+
+        # Odświeżamy widget MplCanvas, aby wyświetlić nowy wykres
+        self.sc.draw()
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):

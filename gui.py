@@ -8,6 +8,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from app_backend.data_manager import DataManager
 
+
 class PCAResultsDialog(QDialog):
     def __init__(self, pca_handler, parent=None):
         super().__init__(parent)
@@ -25,16 +26,18 @@ class PCAResultsDialog(QDialog):
 
         layout.addWidget(sc)
 
+
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
         fig = Figure(figsize=(width, height), dpi=dpi)
         self.axes = fig.add_subplot(111)
         super(MplCanvas, self).__init__(fig)
 
+
 class PCADialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.data_instance = parent.data_instance  # Access DataManager instance
+        self.data_instance = parent.data_instance
         self.init_ui()
 
     def init_ui(self):
@@ -60,17 +63,18 @@ class PCADialog(QDialog):
     def run_pca(self):
         n_components = int(self.components_input.text())
         if n_components > 0:
-            self.data_instance.save() #
+            self.data_instance.save()
             pca_handler = self.data_instance.PCA(n_components)
             self.parent().display_pca_results(pca_handler)
             self.close()
         else:
             print("Wprowadź poprawną liczbę komponentów.")
 
+
 class TypeDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.data_instance = parent.data_instance  # Access DataManager instance
+        self.data_instance = parent.data_instance
         self.init_ui()
 
     def init_ui(self):
@@ -97,10 +101,11 @@ class TypeDialog(QDialog):
         variable_type = self.data_instance.get_variable_type(variable_name)
         self.type_label.setText(f"Typ: {variable_type}")
 
+
 class RenameDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.data_instance = parent.data_instance  # Ensure you have data_instance available in MainWindow
+        self.data_instance = parent.data_instance
         self.init_ui()
 
     def init_ui(self):
@@ -142,10 +147,11 @@ class RenameDialog(QDialog):
         else:
             print("Please enter both old and new names.")
 
+
 class DeleteDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.data_instance = parent.data_instance  # Access to DataManager instance
+        self.data_instance = parent.data_instance
         self.init_ui()
 
     def init_ui(self):
@@ -180,6 +186,7 @@ class DeleteDialog(QDialog):
                 print(f'Error deleting variable: {e}')
         else:
             print("Please enter the name of the variable to delete.")
+
 
 class MainWindow(QWidget):
     def __init__(self):
@@ -229,7 +236,7 @@ class MainWindow(QWidget):
 
     def open_file_name_dialog(self):
         options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getOpenFileName(self, "Wybierz plik", "", "Pliki csv (*.csv)", options=options)
+        file_name, _ = QFileDialog.getOpenFileName(self, "Wybierz plik csv", "", "Pliki csv (*.csv)", options=options)
         if file_name:
             self.process_file(file_name)
 
@@ -244,7 +251,7 @@ class MainWindow(QWidget):
         self.table_widget = QTableWidget()
         layout.addWidget(self.table_widget)
 
-        btn = QPushButton('Wybierz plik')
+        btn = QPushButton('Wybierz plik csv')
         btn.clicked.connect(self.open_file_name_dialog)
         layout.addWidget(btn)
 
@@ -263,42 +270,42 @@ class MainWindow(QWidget):
 
         # guzik do resetu do stanu poczatkowego
         # Add reset button here
-        reset_button = QPushButton('Resetuj dane')
+        reset_button = QPushButton('Resetuj dane do stanu początkowego')
         reset_button.clicked.connect(self.reset_data)
         layout.addWidget(reset_button)
 
         # guzik do cofania zmian do poprzednio zapisanego stanu
-        undo_button = QPushButton('Cofnij zmiany')
+        undo_button = QPushButton('Cofnij ostatnią zmianę')
         undo_button.clicked.connect(self.undo_changes)
         layout.addWidget(undo_button)
 
         # guzik do wyswietlenia nazwy zmiennej
         self.type_button = QPushButton('Sprawdź typ zmiennej')
         self.type_button.clicked.connect(self.open_type_dialog)
-        layout.addWidget(self.type_button)  # Assuming you have a layout named main_layout
+        layout.addWidget(self.type_button)
 
         # guzik do wyświetlania typów wszystkich zmiennych
-        types_button = QPushButton('Pokaż typy zmiennych')
+        types_button = QPushButton('Pokaż typy wszystkich zmiennych')
         types_button.clicked.connect(self.display_variable_types)
         layout.addWidget(types_button)
 
         # guzik do normalizacji_std
-        normalize_std_button = QPushButton('Normalizuj zmienną (std)')
+        normalize_std_button = QPushButton('Normalizuj zmienną (standardowa normalizacja)')
         normalize_std_button.clicked.connect(self.open_normalize_std_dialog)
         layout.addWidget(normalize_std_button)
 
         # guzik do normalizacji_q
-        normalize_q_button = QPushButton('Normalizuj zmienną (q)')
+        normalize_q_button = QPushButton('Normalizuj zmienną (normalizacja oparta na kwantylu)')
         normalize_q_button.clicked.connect(self.open_normalize_q_dialog)
         layout.addWidget(normalize_q_button)
 
-        # guzik do standaryzacji
-        standarize_button = QPushButton('Standaryzuj dataset')
+        # guzik do standaryzacji/normalizacji calego zbioru danych
+        standarize_button = QPushButton('Normalizacja całego zbioru danych')
         standarize_button.clicked.connect(self.open_standarize_dataset_dialog)
         layout.addWidget(standarize_button)
 
         # guzik do one-hot-encode
-        onehot_encode_button = QPushButton('One-hot-encode')
+        onehot_encode_button = QPushButton('Metoda one-hot-encode dla zmiennej')
         onehot_encode_button.clicked.connect(self.open_onehot_encode_dialog)
         layout.addWidget(onehot_encode_button)
 
@@ -374,8 +381,8 @@ class MainWindow(QWidget):
         self.delete_dialog.show()
 
     def reset_data(self):
-        self.data_instance.reset()  # Call reset method from DataManager
-        self.display_data_in_table(self.data_instance.get_df())  # Refresh the table to show the reset data
+        self.data_instance.reset()
+        self.display_data_in_table(self.data_instance.get_df())
 
     def undo_changes(self):
         try:
@@ -407,7 +414,7 @@ class MainWindow(QWidget):
         try:
             self.data_instance.save()
             self.data_instance.normalize_std(variable_name)
-            self.display_data_in_table(self.data_instance.get_df())  # Refresh the table to show the normalized data
+            self.display_data_in_table(self.data_instance.get_df())
             QMessageBox.information(self, "Normalizacja", f"Zmienna '{variable_name}' została znormalizowana.")
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zmiennej: {e}")
@@ -443,17 +450,17 @@ class MainWindow(QWidget):
             QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zbioru danych: {e}")
 
     def open_onehot_encode_dialog(self):
-        variable_name, ok = QInputDialog.getItem(self, "Wybierz zmienną do kodowania One-Hot", "Zmienna:",
+        variable_name, ok = QInputDialog.getItem(self, "Wybierz zmienną dla metody one-hot-encode", "Zmienna:",
                                                  self.data_instance.get_df().columns.tolist(), 0, False)
         if ok and variable_name:
             self.onehot_encode(variable_name)
 
     def onehot_encode(self, variable_name):
         try:
-            self.data_instance.save()  # Save the current state for possible undo functionality
+            self.data_instance.save()
             self.data_instance.one_hot_encode(variable_name)
             self.display_data_in_table(
-                self.data_instance.get_df())  # Refresh the table to show the one-hot encoded data
+                self.data_instance.get_df())
             QMessageBox.information(self, "Kodowanie One-Hot",
                                     f"Zmienna '{variable_name}' została zakodowana metodą One-Hot.")
         except Exception as e:
@@ -463,22 +470,6 @@ class MainWindow(QWidget):
     def open_pca_dialog(self):
         self.pca_dialog = PCADialog(self)
         self.pca_dialog.show()
-
-    # def display_pca_results(self, pca_handler):
-    #     self.display_data_in_table(pca_handler.get_df())
-    #
-    #     # Tworzenie widgetu MplCanvas
-    #     sc = MplCanvas(self, width=5, height=4, dpi=100)
-    #     pca_handler.plot_2d('pc1', 'pc2', 'PCA - Pierwsze dwa komponenty', ax=sc.axes)
-    #
-    #     # Opcjonalnie: dodanie widgetu MplCanvas do layoutu
-    #     # Możesz dodać MplCanvas do istniejącego layoutu w swoim interfejsie użytkownika
-    #     # Na przykład, dodając go do layoutu QVBoxLayout:
-    #     layout = QVBoxLayout()  # lub odwołaj się do istniejącego layoutu
-    #     layout.addWidget(sc)
-    #     # Ustawienie layoutu na odpowiedni widget lub dialog
-    #     #self.setLayout(layout)  # Jeśli tworzysz nowe okno/dialog
-    #     # lub dodaj MplCanvas bezpośrednio do istniejącego layoutu w MainWindow
 
     def display_pca_results(self, pca_handler):
         self.display_data_in_table(pca_handler.get_df())

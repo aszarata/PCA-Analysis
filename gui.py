@@ -1,12 +1,35 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QTableWidgetItem, \
-    QTableWidget, QStackedWidget, QDialog, QHBoxLayout, QLineEdit, QMessageBox, QInputDialog
+    QTableWidget, QStackedWidget, QDialog, QHBoxLayout, QLineEdit, QMessageBox, QInputDialog, QFormLayout
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont, QDropEvent, QDragEnterEvent
 from PyQt5.QtWidgets import QComboBox
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from app_backend.data_manager import DataManager
+
+
+class ClusteringResultsDialog(QDialog):
+    def __init__(self, pca_handler, clustering_type, parent=None):
+        super().__init__(parent)
+        self.pca_handler = pca_handler
+        self.clustering_type = clustering_type  # 'KMeans' lub 'DBSCAN'
+        self.setWindowTitle(f'Wyniki Klasteringu: {self.clustering_type}')
+        self.setGeometry(100, 100, 600, 500)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+
+        sc = MplCanvas(self, width=5, height=4, dpi=100)
+        if self.clustering_type == 'KMeans':
+            self.pca_handler.kmeans_clustering(num_clusters=3)  # Tu można dodać dynamiczne wybieranie liczby klastrów
+        elif self.clustering_type == 'DBSCAN':
+            self.pca_handler.dbscan_clustering(eps=0.5,
+                                               min_samples=5)  # Tu można dodać dynamiczne wybieranie parametrów
+
+        self.pca_handler.plot_2d('pc1', 'pc2', f'{self.clustering_type} - Pierwsze dwa komponenty', ax=sc.axes)
+        layout.addWidget(sc)
 
 
 # class PCAResultsDialog(QDialog):
@@ -42,7 +65,7 @@ class PCAResultsDialog(QDialog):
         self.component_y_combo = QComboBox()
 
         # Wypełniamy QComboBox możliwymi do wyboru składowymi
-        components = [f'pc{i+1}' for i in range(len(self.pca_handler.get_df().columns))]
+        components = [f'pc{i + 1}' for i in range(len(self.pca_handler.get_df().columns))]
         self.component_x_combo.addItems(components)
         self.component_y_combo.addItems(components)
 
@@ -86,6 +109,7 @@ class PCAResultsDialog(QDialog):
 
         # Odświeżamy widget MplCanvas, aby wyświetlić nowy wykres
         self.sc.draw()
+
 
 class MplCanvas(FigureCanvas):
     def __init__(self, parent=None, width=5, height=4, dpi=100):
@@ -374,6 +398,16 @@ class MainWindow(QWidget):
         pca_button.clicked.connect(self.open_pca_dialog)
         layout.addWidget(pca_button)
 
+        # guzik do kmeans
+        kmeans_button = QPushButton('Uruchom KMeans')
+        kmeans_button.clicked.connect(self.open_kmeans_dialog)
+        layout.addWidget(kmeans_button)
+
+        # guzik do dbscan
+        dbscan_button = QPushButton('Uruchom DBSCAN')
+        dbscan_button.clicked.connect(self.open_dbscan_dialog)
+        layout.addWidget(dbscan_button)
+
         import_page.setLayout(layout)
         self.stacked_widget.addWidget(import_page)
 
@@ -537,6 +571,17 @@ class MainWindow(QWidget):
         # Uruchomienie dialogu z wynikami PCA
         pca_results_dialog = PCAResultsDialog(pca_handler, self)
         pca_results_dialog.exec_()
+
+    def open_kmeans_dialog(self):
+        pca_handler = self.data_instance.PCA(n_components=2)  # Można dostosować liczbę komponentów
+        clustering_dialog = ClusteringResultsDialog(pca_handler, 'KMeans', self)
+        clustering_dialog.exec_()
+
+    def open_dbscan_dialog(self):
+        pca_handler = self.data_instance.PCA(n_components=2)  # Można dostosować liczbę komponentów
+        clustering_dialog = ClusteringResultsDialog(pca_handler, 'DBSCAN', self)
+        clustering_dialog.exec_()
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

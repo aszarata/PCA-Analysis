@@ -383,20 +383,25 @@ class MainWindow(QWidget):
         normalize_q_button.clicked.connect(self.open_normalize_q_dialog)
         layout.addWidget(normalize_q_button)
 
-        # guzik do standaryzacji/normalizacji calego zbioru danych
-        standarize_button = QPushButton('Normalizacja całego zbioru danych')
-        standarize_button.clicked.connect(self.open_standarize_dataset_dialog)
-        layout.addWidget(standarize_button)
+        # # guzik do standaryzacji/normalizacji calego zbioru danych
+        # standarize_button = QPushButton('Normalizacja całego zbioru danych')
+        # standarize_button.clicked.connect(self.open_standarize_dataset_dialog)
+        # layout.addWidget(standarize_button)
+        #
+        # # guzik do one-hot-encode
+        # onehot_encode_button = QPushButton('Metoda one-hot-encode dla zmiennej')
+        # onehot_encode_button.clicked.connect(self.open_onehot_encode_dialog)
+        # layout.addWidget(onehot_encode_button)
 
-        # guzik do one-hot-encode
-        onehot_encode_button = QPushButton('Metoda one-hot-encode dla zmiennej')
-        onehot_encode_button.clicked.connect(self.open_onehot_encode_dialog)
-        layout.addWidget(onehot_encode_button)
+        # guzik do przygotowania do analizy pca -> one-hot-encode plus standaryzacja calego zbioru danych
+        prepare_button = QPushButton('Przygotowanie danych do analizy PCA')
+        prepare_button.clicked.connect(self.open_prepare_dialog)
+        layout.addWidget(prepare_button)
 
-        # guzik do uruchamiania analizy PCA
-        pca_button = QPushButton('Uruchom Analizę PCA')
-        pca_button.clicked.connect(self.open_pca_dialog)
-        layout.addWidget(pca_button)
+        # # guzik do uruchamiania analizy PCA
+        # pca_button = QPushButton('Uruchom Analizę PCA')
+        # pca_button.clicked.connect(self.open_pca_dialog)
+        # layout.addWidget(pca_button)
 
         # guzik do kmeans
         kmeans_button = QPushButton('Uruchom KMeans')
@@ -528,38 +533,58 @@ class MainWindow(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zmiennej: {e}")
 
-    def open_standarize_dataset_dialog(self):
-        reply = QMessageBox.question(self, 'Potwierdzenie', "Czy na pewno chcesz znormalizować cały zbiór danych?",
+    # def open_standarize_dataset_dialog(self):
+    #     reply = QMessageBox.question(self, 'Potwierdzenie', "Czy na pewno chcesz znormalizować cały zbiór danych?",
+    #                                  QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+    #     if reply == QMessageBox.Yes:
+    #         self.standarize_dataset()
+    #
+    # def standarize_dataset(self):
+    #     try:
+    #         self.data_instance.save()
+    #         self.data_instance.standarize_dataset()
+    #         self.display_data_in_table(self.data_instance.get_df())  # Refresh the table to show the standardized data
+    #         QMessageBox.information(self, "Normalizacja", "Cały zbiór danych został znormalizowany.")
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zbioru danych: {e}")
+    #
+    # def open_onehot_encode_dialog(self):
+    #     variable_name, ok = QInputDialog.getItem(self, "Wybierz zmienną dla metody one-hot-encode", "Zmienna:",
+    #                                              self.data_instance.get_df().columns.tolist(), 0, False)
+    #     if ok and variable_name:
+    #         self.onehot_encode(variable_name)
+    #
+    # def onehot_encode(self, variable_name):
+    #     try:
+    #         self.data_instance.save()
+    #         self.data_instance.one_hot_encode(variable_name)
+    #         self.display_data_in_table(
+    #             self.data_instance.get_df())
+    #         QMessageBox.information(self, "Kodowanie One-Hot",
+    #                                 f"Zmienna '{variable_name}' została zakodowana metodą One-Hot.")
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Błąd",
+    #                              f"Nie udało się zakodować zmiennej '{variable_name}' metodą One-Hot: {e}")
+    def open_prepare_dialog(self):
+
+        reply = QMessageBox.question(self, 'Potwierdzenie', "Czy na pewno chcesz przygotować cały zbiór danych do analizy PCA?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.standarize_dataset()
+            self.prepare()
 
-    def standarize_dataset(self):
+    def prepare(self):
         try:
             self.data_instance.save()
+            for variable_name in self.data_instance.get_df().columns.tolist():
+                if self.data_instance.get_variable_type(variable_name) == 'categorical':
+                    self.data_instance.one_hot_encode(variable_name)
             self.data_instance.standarize_dataset()
-            self.display_data_in_table(self.data_instance.get_df())  # Refresh the table to show the standardized data
-            QMessageBox.information(self, "Normalizacja", "Cały zbiór danych został znormalizowany.")
-        except Exception as e:
-            QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zbioru danych: {e}")
-
-    def open_onehot_encode_dialog(self):
-        variable_name, ok = QInputDialog.getItem(self, "Wybierz zmienną dla metody one-hot-encode", "Zmienna:",
-                                                 self.data_instance.get_df().columns.tolist(), 0, False)
-        if ok and variable_name:
-            self.onehot_encode(variable_name)
-
-    def onehot_encode(self, variable_name):
-        try:
-            self.data_instance.save()
-            self.data_instance.one_hot_encode(variable_name)
             self.display_data_in_table(
-                self.data_instance.get_df())
-            QMessageBox.information(self, "Kodowanie One-Hot",
-                                    f"Zmienna '{variable_name}' została zakodowana metodą One-Hot.")
+            self.data_instance.get_df())  # Refresh the table to show the standardized data
+            self.open_pca_dialog()
+            QMessageBox.information(self, "Przygotowanie do PCA", "Cały zbiór danych został przygotowany do analizy PCA.")
         except Exception as e:
-            QMessageBox.critical(self, "Błąd",
-                                 f"Nie udało się zakodować zmiennej '{variable_name}' metodą One-Hot: {e}")
+            QMessageBox.critical(self, "Błąd", f"Nie udało się przygotować zbioru danych do analizy PCA: {e}")
 
     def open_pca_dialog(self):
         self.pca_dialog = PCADialog(self)

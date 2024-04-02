@@ -5,8 +5,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont, QDropEvent, QDragEnterEvent
 from PyQt5.QtWidgets import QComboBox
 from app_backend.data_manager import DataManager
-from variable_dialog import *
-from clustering_pca_dialog import *
+from gui.variable_dialog import *
+from gui.clustering_pca_dialog import *
 
 
 class MainWindow(QWidget):
@@ -41,7 +41,7 @@ class MainWindow(QWidget):
         title.setAlignment(Qt.AlignHCenter)
 
         logo = QLabel()
-        pixmap = QPixmap("../logo.png")
+        pixmap = QPixmap("logo.png")
         logo.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio))
         logo.setAlignment(Qt.AlignCenter)
 
@@ -59,7 +59,16 @@ class MainWindow(QWidget):
         options = QFileDialog.Options()
         file_name, _ = QFileDialog.getOpenFileName(self, "Wybierz plik csv", "", "Pliki csv (*.csv)", options=options)
         if file_name:
-            self.process_file(file_name)
+            # Pytanie o separator
+            separator, ok = QInputDialog.getItem(self, "Wybierz separator", "Separator użyty w pliku CSV:", [",", ";"],
+                                                 0, False)
+            if ok and separator:
+                try:
+                    self.process_file(file_name, separator)
+                except Exception as e:
+                    QMessageBox.warning(self, "Błąd", f"Wystąpił błąd podczas przetwarzania pliku: {e}", QMessageBox.Ok)
+            else:
+                QMessageBox.information(self, "Anulowano", "Operacja otwarcia pliku została anulowana.", QMessageBox.Ok)
 
     def init_import_page(self):
         import_page = QWidget()
@@ -172,21 +181,15 @@ class MainWindow(QWidget):
     def go_to_import_page(self):
         self.stacked_widget.setCurrentIndex(1)
 
-    def process_file(self, file_path):
+    def process_file(self, file_path, separator):
         if not file_path.lower().endswith('.csv'):
             self.label.setText('Zaimportowano nieobsługiwany format pliku. Proszę wybrać plik CSV.')
             return
 
         try:
-            # Próba wykrycia separatora poprzez odczytanie pierwszej linii pliku
-            with open(file_path, 'r', encoding='utf-8') as file:
-                first_line = file.readline()
-                if ',' in first_line and ';' not in first_line:
-                    sep = ','
-                else:
-                    sep = ';'
-
-            self.data_instance.read_from_csv(file_path, sep=sep)  # Użycie wykrytego separatora
+            # Bezpośrednie użycie separatora wybranego przez użytkownika zamiast wykrywania
+            self.data_instance.read_from_csv(file_path,
+                                             sep=separator)  # Użycie separatora przekazanego przez użytkownika
             self.display_data_in_table(self.data_instance.get_df())
 
         except Exception as e:

@@ -19,42 +19,16 @@ class DataManager:
     # Main Functions
 
     # Read from CSV file
-    # def read_from_csv(self, filename: str, sep: str = ';', header: int = 0) -> None:
-    #     """
-    #     Reads data from a CSV file.
-    #
-    #     Args:
-    #         filename (str): Name of the CSV file.
-    #         sep (str, optional): Delimiter used in the CSV file. Defaults to ';'.
-    #         header (int, optional): Row number to use as the column names. Defaults to 0.
-    #     """
-    #     self.input_df = pd.read_csv(filename, sep=sep, header=header)
-    #     self.input_df.columns = self.input_df.columns.astype(str)
-    #     self.df = self.input_df.copy()
-    #     self.df_last = self.input_df.copy()
-
-    def read_from_csv(self, filename: str, sep: str = ';') -> None:
+    def read_from_csv(self, filename: str, sep: str = ';', header: int = 0) -> None:
         """
-        Reads data from a CSV file, trying to detect if headers are present.
-        If no headers are detected, default column names are assigned.
+        Reads data from a CSV file.
 
         Args:
             filename (str): Name of the CSV file.
             sep (str, optional): Delimiter used in the CSV file. Defaults to ';'.
+            header (int, optional): Row number to use as the column names. Defaults to 0.
         """
-        # Próba wczytania pliku z założeniem, że nagłówki są obecne
-        try:
-            self.input_df = pd.read_csv(filename, sep=sep, header=0)
-            if len(self.input_df.columns) != len(set(self.input_df.columns)):
-                raise ValueError("Duplicate headers detected, assuming no headers.")
-            # Sprawdzamy, czy pierwszy wiersz zawiera typowe dane, a nie nazwy kolumn
-            self.input_df = pd.read_csv(filename, sep=sep, header=None)
-            self.input_df.columns = [str(i) for i in range(len(self.input_df.columns))]
-        except ValueError:
-            # Jeśli wykryto błąd, załóżmy, że plik nie ma nagłówków i wczytaj ponownie
-            self.input_df = pd.read_csv(filename, sep=sep, header=None)
-            self.input_df.columns = [str(i) for i in range(len(self.input_df.columns))]
-
+        self.input_df = pd.read_csv(filename, sep=sep, header=header)
         self.input_df.columns = self.input_df.columns.astype(str)
         self.df = self.input_df.copy()
         self.df_last = self.input_df.copy()

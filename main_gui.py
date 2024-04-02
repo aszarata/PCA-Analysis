@@ -52,17 +52,19 @@ class MainWindow(QWidget):
         start_button = QPushButton("Rozpocznij")
         start_button.clicked.connect(self.go_to_import_page)
 
-        # Spacer przed elementami, aby wypchnąć je do środka
+        layout.addWidget(title)
+
+        # Luka przed elementami, aby wypchnąć je do środka
         spacer_before = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         layout.addItem(spacer_before)
 
-        layout.addWidget(title)
         layout.addWidget(logo)
-        layout.addWidget(start_button)
 
-        # Spacer po elementach, aby utrzymać je na środku
+        # Luka po elementach, aby utrzymać je na środku
         spacer_after = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         layout.addItem(spacer_after)
+
+        layout.addWidget(start_button)
 
         welcome_page.setLayout(layout)
         self.stacked_widget.addWidget(welcome_page)

@@ -15,8 +15,8 @@ class MainWindow(QWidget):
         self.table_widget = None
         self.label = None
         self.stacked_widget = QStackedWidget()
-        self.init_ui()
         self.data_instance = DataManager()
+        self.init_ui()
         self.setAcceptDrops(True)  # Włączamy obsługę przeciągania i upuszczania pliku csv
 
     def init_ui(self):
@@ -78,8 +78,12 @@ class MainWindow(QWidget):
         self.label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.label)
 
-        self.table_widget = QTableWidget()
+        self.table_widget = EditableHeaderTableWidget(self)  # Używamy naszej niestandardowej klasy
         layout.addWidget(self.table_widget)
+
+        #self.table_widget = QTableWidget()
+        #self.table_widget.horizontalHeader().sectionClicked.connect(self.header_clicked)
+        #layout.addWidget(self.table_widget)
 
         btn = QPushButton('Wybierz plik csv')
         btn.clicked.connect(self.open_file_name_dialog)
@@ -87,11 +91,6 @@ class MainWindow(QWidget):
 
         import_page.setLayout(layout)
         self.stacked_widget.addWidget(import_page)
-
-        # guzik do zmiany nazwy zmiennej
-        rename_button = QPushButton('Zmień nazwę zmiennej')
-        rename_button.clicked.connect(self.open_rename_dialog)
-        layout.addWidget(rename_button)
 
         # guzik do usuwania nazwy zmiennej
         delete_button = QPushButton('Usuń zmienną')
@@ -218,10 +217,6 @@ class MainWindow(QWidget):
                 self.table_widget.setItem(i, j, item)
 
         self.table_widget.resizeColumnsToContents()
-
-    def open_rename_dialog(self):
-        self.rename_dialog = RenameDialog(self)
-        self.rename_dialog.show()
 
     def open_delete_dialog(self):
         self.delete_dialog = DeleteDialog(self)

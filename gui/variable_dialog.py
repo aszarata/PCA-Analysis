@@ -53,35 +53,6 @@ class EditableHeaderTableWidget(QTableWidget):
             else:
                 print(f"Error: Column '{old_name}' not found in DataFrame.")
 
-class TypeDialog(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.data_instance = parent.data_instance
-        self.init_ui()
-
-    def init_ui(self):
-        self.setWindowTitle('Sprawdź typ zmiennej')
-        self.setGeometry(100, 100, 300, 100)
-
-        layout = QVBoxLayout()
-
-        self.variable_combo = QComboBox()
-        self.variable_combo.addItems(self.data_instance.get_df().columns)
-
-        self.type_label = QLabel("Typ: Nie wybrano")
-        self.check_button = QPushButton("Sprawdź typ")
-        self.check_button.clicked.connect(self.display_variable_type)
-
-        layout.addWidget(self.variable_combo)
-        layout.addWidget(self.type_label)
-        layout.addWidget(self.check_button)
-
-        self.setLayout(layout)
-
-    def display_variable_type(self):
-        variable_name = self.variable_combo.currentText()
-        variable_type = self.data_instance.get_variable_type(variable_name)
-        self.type_label.setText(f"Typ: {variable_type}")
 
 class DeleteDialog(QDialog):
     def __init__(self, parent=None):

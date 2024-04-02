@@ -1,6 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QTableWidgetItem, \
-    QTableWidget, QStackedWidget, QDialog, QHBoxLayout, QLineEdit, QMessageBox, QInputDialog, QFormLayout
+    QTableWidget, QStackedWidget, QDialog, QHBoxLayout, QLineEdit, QMessageBox, QInputDialog, QFormLayout, QSpacerItem, \
+    QSizePolicy
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont, QDropEvent, QDragEnterEvent
 from PyQt5.QtWidgets import QComboBox
@@ -51,11 +52,19 @@ class MainWindow(QWidget):
         start_button = QPushButton("Rozpocznij")
         start_button.clicked.connect(self.go_to_import_page)
 
+        # Spacer przed elementami, aby wypchnąć je do środka
+        spacer_before = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        layout.addItem(spacer_before)
+
         layout.addWidget(title)
         layout.addWidget(logo)
         layout.addWidget(start_button)
-        welcome_page.setLayout(layout)
 
+        # Spacer po elementach, aby utrzymać je na środku
+        spacer_after = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        layout.addItem(spacer_after)
+
+        welcome_page.setLayout(layout)
         self.stacked_widget.addWidget(welcome_page)
 
     def open_file_name_dialog(self):
@@ -110,16 +119,6 @@ class MainWindow(QWidget):
         undo_button = QPushButton('Cofnij ostatnią zmianę')
         undo_button.clicked.connect(self.undo_changes)
         layout.addWidget(undo_button)
-
-        # # guzik do wyswietlenia nazwy zmiennej
-        # self.type_button = QPushButton('Sprawdź typ zmiennej')
-        # self.type_button.clicked.connect(self.open_type_dialog)
-        # layout.addWidget(self.type_button)
-
-        # # guzik do wyświetlania typów wszystkich zmiennych
-        # types_button = QPushButton('Pokaż typy wszystkich zmiennych')
-        # types_button.clicked.connect(self.display_variable_types)
-        # layout.addWidget(types_button)
 
         # guzik do normalizacji_std
         normalize_std_button = QPushButton('Normalizuj zmienną (standardowa normalizacja)')
@@ -206,22 +205,6 @@ class MainWindow(QWidget):
                                 f"Wystąpił błąd podczas przetwarzania pliku. Proszę sprawdzić format pliku oraz wybrany separator i spróbować ponownie.",
                                 QMessageBox.Ok)
 
-    # def display_data_in_table(self, df):
-    #     if df is None:
-    #         df = self.data_instance.get_df()
-    #     self.table_widget.setRowCount(df.shape[0])
-    #     self.table_widget.setColumnCount(df.shape[1])
-    #     self.table_widget.setHorizontalHeaderLabels(df.columns)
-    #
-    #     for i, row in df.iterrows():
-    #         for j, value in enumerate(row):
-    #             item = QTableWidgetItem(str(value))
-    #             # Zmiana flagi elementu, aby nie był edytowalny
-    #             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
-    #             self.table_widget.setItem(i, j, item)
-    #
-    #     self.table_widget.resizeColumnsToContents()
-
     def display_data_in_table(self, df):
         if df is None:
             df = self.data_instance.get_df()
@@ -258,18 +241,6 @@ class MainWindow(QWidget):
             QMessageBox.information(self, "Cofnięto zmiany", "Zmiany zostały cofnięte do ostatniego zapisanego stanu.")
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Nie udało się cofnąć zmian: {e}")
-
-    def open_type_dialog(self):
-        self.type_dialog = TypeDialog(self)
-        self.type_dialog.show()
-
-    def display_variable_types(self):
-        try:
-            types = self.data_instance.get_variable_types()
-            message = "Typy zmiennych:\n" + "\n".join([f"{var}: {typ}" for var, typ in types.items()])
-            QMessageBox.information(self, "Typy Zmiennych", message)
-        except Exception as e:
-            QMessageBox.critical(self, "Błąd", f"Nie udało się wyświetlić typów zmiennych: {e}")
 
     def open_normalize_std_dialog(self):
         variable_name, ok = QInputDialog.getItem(self, "Wybierz zmienną do normalizacji", "Zmienna:",

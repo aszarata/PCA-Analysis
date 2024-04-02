@@ -30,6 +30,8 @@ class MainWindow(QWidget):
         main_layout.addWidget(self.stacked_widget)
         self.setLayout(main_layout)
 
+        self.init_data_manipulation_page()  # Inicjalizacja ekranu manipulacji danymi
+
     def init_welcome_page(self):
         welcome_page = QWidget()
         layout = QVBoxLayout()
@@ -78,19 +80,19 @@ class MainWindow(QWidget):
         self.label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.label)
 
-        self.table_widget = EditableHeaderTableWidget(self)  # Używamy naszej niestandardowej klasy
-        layout.addWidget(self.table_widget)
-
-        #self.table_widget = QTableWidget()
-        #self.table_widget.horizontalHeader().sectionClicked.connect(self.header_clicked)
-        #layout.addWidget(self.table_widget)
-
         btn = QPushButton('Wybierz plik csv')
         btn.clicked.connect(self.open_file_name_dialog)
         layout.addWidget(btn)
 
         import_page.setLayout(layout)
         self.stacked_widget.addWidget(import_page)
+
+    def init_data_manipulation_page(self):
+        manipulation_page = QWidget()
+        layout = QVBoxLayout()
+
+        self.table_widget = EditableHeaderTableWidget(self)  # Używamy naszej niestandardowej klasy
+        layout.addWidget(self.table_widget)
 
         # guzik do usuwania nazwy zmiennej
         delete_button = QPushButton('Usuń zmienną')
@@ -158,8 +160,8 @@ class MainWindow(QWidget):
         dbscan_button.clicked.connect(self.open_dbscan_dialog)
         layout.addWidget(dbscan_button)
 
-        import_page.setLayout(layout)
-        self.stacked_widget.addWidget(import_page)
+        manipulation_page.setLayout(layout)
+        self.stacked_widget.addWidget(manipulation_page)
 
     def dragEnterEvent(self, e):
         if e.mimeData().hasUrls():
@@ -192,6 +194,7 @@ class MainWindow(QWidget):
             if self.data_instance.df.shape[1] < 2:
                 raise ValueError("Wygląda na to, że podano niewłaściwy separator. Proszę spróbować z innym.")
 
+            self.stacked_widget.setCurrentIndex(2)
             self.display_data_in_table(self.data_instance.get_df())
 
         except ValueError as ve:

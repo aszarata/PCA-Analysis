@@ -26,17 +26,18 @@ class EditableHeaderTableWidget(QTableWidget):
 
     def onEditingFinished(self):
         new_name = self.line_edit.text()
+        self.line_edit.hide()  # Ukryj QLineEdit
+        self.line_edit.clearFocus()  # Usuń fokus z QLineEdit
         # if not new_name:
         #     print("Please enter a new name.")
         #     return
-
-        self.line_edit.hide()
 
         # Oryginalna nazwa zmiennej, którą zamierzamy zmienić
         old_name = self.horizontalHeaderItem(self.current_section).text()
 
         # Sprawdzenie, czy nowa nazwa jest różna od starej, aby uniknąć zbędnych operacji
         if old_name != new_name:
+            print("Zapisywanie stanu przed zmianą nazwy kolumny.")
             # Zapisz poprzedni stan w DataManager przed dokonaniem zmiany
             self.data_instance.save()
 

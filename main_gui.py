@@ -21,7 +21,7 @@ class MainWindow(QWidget):
 
     def init_ui(self):
         self.setWindowTitle('PCA Analysis')
-        self.setGeometry(100, 100, 400, 300)
+        self.setGeometry(100, 100, 1200, 1000)
 
         self.init_welcome_page()
         self.init_import_page()
@@ -42,7 +42,7 @@ class MainWindow(QWidget):
 
         logo = QLabel()
         pixmap = QPixmap("logo.png")
-        logo.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio))
+        logo.setPixmap(pixmap.scaled(400, 400, Qt.KeepAspectRatio))
         logo.setAlignment(Qt.AlignCenter)
 
         start_button = QPushButton("Rozpocznij")
@@ -187,13 +187,21 @@ class MainWindow(QWidget):
             return
 
         try:
-            # Bezpośrednie użycie separatora wybranego przez użytkownika zamiast wykrywania
-            self.data_instance.read_from_csv(file_path,
-                                             sep=separator)  # Użycie separatora przekazanego przez użytkownika
+            self.data_instance.read_from_csv(file_path, sep=separator)
+
+            # Sprawdzanie, czy DataFrame ma więcej niż jedną kolumnę jako wskazówkę, że separator może być niewłaściwy
+            if self.data_instance.df.shape[1] < 2:
+                raise ValueError("Wygląda na to, że podano niewłaściwy separator. Proszę spróbować z innym.")
+
             self.display_data_in_table(self.data_instance.get_df())
 
+        except ValueError as ve:
+            QMessageBox.warning(self, "Błąd separatora", str(ve), QMessageBox.Ok)
         except Exception as e:
             print(f'Błąd przy przetwarzaniu pliku: {str(e)}')
+            QMessageBox.warning(self, "Błąd",
+                                f"Wystąpił błąd podczas przetwarzania pliku. Proszę sprawdzić format pliku oraz wybrany separator i spróbować ponownie.",
+                                QMessageBox.Ok)
 
     def display_data_in_table(self, df):
         if df is None:

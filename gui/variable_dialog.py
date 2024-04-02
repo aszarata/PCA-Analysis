@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QComboBox, QLabel, QPushButton, QHBoxLayout, QLineEdit, QTableWidget,
-                             QTableWidgetItem)
+                             QTableWidgetItem, QMessageBox)
 from PyQt5.QtCore import Qt
 
 
@@ -97,10 +97,13 @@ class DeleteDialog(QDialog):
         form_layout = QHBoxLayout()
 
         self.variable_name_label = QLabel("Nazwa zmiennej:")
-        self.variable_name_input = QLineEdit()
+        self.variable_name_combo = QComboBox()
+
+        # Wypełnianie rozwijanej listy nazwami zmiennych
+        self.variable_name_combo.addItems(self.data_instance.get_df().columns)
 
         form_layout.addWidget(self.variable_name_label)
-        form_layout.addWidget(self.variable_name_input)
+        form_layout.addWidget(self.variable_name_combo)
 
         self.delete_button = QPushButton("Usuń")
         self.delete_button.clicked.connect(self.delete_variable)
@@ -110,14 +113,16 @@ class DeleteDialog(QDialog):
         self.setLayout(layout)
 
     def delete_variable(self):
-        variable_name = self.variable_name_input.text()
+        variable_name = self.variable_name_combo.currentText()
         if variable_name:
             try:
                 self.data_instance.save()
                 self.data_instance.delete_variable(variable_name)
                 self.parent().display_data_in_table(self.data_instance.get_df())
+                QMessageBox.information(self, "Sukces", f"Zmienna '{variable_name}' została usunięta.")
                 self.close()
             except Exception as e:
-                print(f'Error deleting variable: {e}')
+                QMessageBox.critical(self, "Błąd", f"Nie udało się usunąć zmiennej: {e}")
         else:
-            print("Please enter the name of the variable to delete.")
+            QMessageBox.warning(self, "Uwaga", "Proszę wybrać nazwę zmiennej do usunięcia.")
+

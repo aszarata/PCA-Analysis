@@ -38,9 +38,10 @@ class MainWindow(QWidget):
 
         title = QLabel("Witamy w Aplikacji PCA Analysis")
         font = QFont()
-        font.setPointSize(24)
+        font.setPointSize(48)
         title.setFont(font)
         title.setAlignment(Qt.AlignHCenter)
+        title.setStyleSheet("font-size: 48px; color: #B0E0E6; font-family: Roboto;")
 
         logo = QLabel()
         pixmap = QPixmap("logo.png")
@@ -347,4 +348,41 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     ex = MainWindow()
     ex.show()
+    app.setStyleSheet("""
+        QWidget {
+            font-size: 11px;
+            font-family: Roboto;
+        }
+        QPushButton {
+            background-color: #808000; 
+            color: white;
+            border-radius: 5px;
+            padding: 3px;
+            margin: 3px;
+            font-family: Roboto;
+        }
+        QPushButton:hover {
+            font-family: Roboto;
+            background-color: #6B8E23; 
+        }
+        QTableWidget {
+            font-family: Roboto;
+            selection-background-color: #FF7F50; 
+        }
+        QTableWidget::item {
+            color: #FFFFFF; 
+            font-family: Roboto;
+        }
+        QTableWidget QHeaderView::section {
+            color: #F28500; 
+            padding: 5px;
+            margin: 0px;
+            font-weight: bold;
+            font-family: Roboto;
+        }
+        QLabel {
+            color: #DAA520; 
+            font-family: Roboto;
+        }
+    """)
     sys.exit(app.exec_())

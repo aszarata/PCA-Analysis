@@ -110,15 +110,15 @@ class MainWindow(QWidget):
         undo_button.clicked.connect(self.undo_changes)
         layout.addWidget(undo_button)
 
-        # guzik do wyswietlenia nazwy zmiennej
-        self.type_button = QPushButton('Sprawdź typ zmiennej')
-        self.type_button.clicked.connect(self.open_type_dialog)
-        layout.addWidget(self.type_button)
+        # # guzik do wyswietlenia nazwy zmiennej
+        # self.type_button = QPushButton('Sprawdź typ zmiennej')
+        # self.type_button.clicked.connect(self.open_type_dialog)
+        # layout.addWidget(self.type_button)
 
-        # guzik do wyświetlania typów wszystkich zmiennych
-        types_button = QPushButton('Pokaż typy wszystkich zmiennych')
-        types_button.clicked.connect(self.display_variable_types)
-        layout.addWidget(types_button)
+        # # guzik do wyświetlania typów wszystkich zmiennych
+        # types_button = QPushButton('Pokaż typy wszystkich zmiennych')
+        # types_button.clicked.connect(self.display_variable_types)
+        # layout.addWidget(types_button)
 
         # guzik do normalizacji_std
         normalize_std_button = QPushButton('Normalizuj zmienną (standardowa normalizacja)')
@@ -205,6 +205,22 @@ class MainWindow(QWidget):
                                 f"Wystąpił błąd podczas przetwarzania pliku. Proszę sprawdzić format pliku oraz wybrany separator i spróbować ponownie.",
                                 QMessageBox.Ok)
 
+    # def display_data_in_table(self, df):
+    #     if df is None:
+    #         df = self.data_instance.get_df()
+    #     self.table_widget.setRowCount(df.shape[0])
+    #     self.table_widget.setColumnCount(df.shape[1])
+    #     self.table_widget.setHorizontalHeaderLabels(df.columns)
+    #
+    #     for i, row in df.iterrows():
+    #         for j, value in enumerate(row):
+    #             item = QTableWidgetItem(str(value))
+    #             # Zmiana flagi elementu, aby nie był edytowalny
+    #             item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+    #             self.table_widget.setItem(i, j, item)
+    #
+    #     self.table_widget.resizeColumnsToContents()
+
     def display_data_in_table(self, df):
         if df is None:
             df = self.data_instance.get_df()
@@ -217,6 +233,11 @@ class MainWindow(QWidget):
                 item = QTableWidgetItem(str(value))
                 # Zmiana flagi elementu, aby nie był edytowalny
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+                # Ustawienie tekstu wskazówki (tooltip) z typem danych dla danej kolumny
+                column_name = df.columns[j]
+                column_data_type = self.data_instance.get_variable_type(
+                    column_name)
+                item.setToolTip(f"Typ: {column_data_type}")
                 self.table_widget.setItem(i, j, item)
 
         self.table_widget.resizeColumnsToContents()

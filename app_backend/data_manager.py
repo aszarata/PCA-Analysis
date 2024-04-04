@@ -217,6 +217,19 @@ class DataManager:
                     self.normalize_std(variable)
         except Exception as e:
             raise Exception(f"An error occurred while standardizing dataset: {str(e)}")
+        
+    # Standardize the entire dataset (all numerical features)
+    def q_normalize_dataset(self) -> None:
+        """
+        Quantile normalizes all numerical features in the DataFrame.
+        """
+        try:
+            for variable in self.df.columns:
+                if self.get_variable_type(variable) == 'numerical':
+                    self.normalize_std(variable)
+        except Exception as e:
+            raise Exception(f"An error occurred while quantile normalizing dataset: {str(e)}")
+
 
     # One-Hot Encode a variable
     def one_hot_encode(self, variable_name: str) -> None:

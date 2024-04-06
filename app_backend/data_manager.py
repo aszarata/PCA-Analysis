@@ -15,6 +15,7 @@ class DataManager:
 
         # DataFrame in the last saved state
         self.df_last = None
+        self.last_file_path = None  # Dodanie atrybutu do przechowywania ścieżki do ostatniego pliku
 
     # Main Functions
 
@@ -29,6 +30,7 @@ class DataManager:
             header (int, optional): Row number to use as the column names. Defaults to 0.
         """
         try:
+            self.last_file_path = filename  # Aktualizacja ścieżki do ostatnio wczytanego pliku
             self.input_df = pd.read_csv(filename, sep=sep, header=header)
             self.input_df.columns = self.input_df.columns.astype(str)
             self.df = self.input_df.copy()

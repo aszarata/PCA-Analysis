@@ -283,16 +283,31 @@ class MainWindow(QWidget):
             QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zmiennej: {e}")
 
     def open_prepare_dialog(self):
-        msgBox = QMessageBox()
-        msgBox.setText("Wybierz rodzaj normalizacji")
-        msgBox.addButton(QPushButton('Standardowa'), QMessageBox.YesRole)
-        msgBox.addButton(QPushButton('Oparta na kwantylach'), QMessageBox.NoRole)
-        ret = msgBox.exec_()
+        # Pytanie wstępne do użytkownika
+        confirmation_msg = QMessageBox()
+        confirmation_msg.setWindowTitle("Potwierdzenie")
+        confirmation_msg.setText("Czy jesteś pewien/pewna, \n"
+                                 "że zmienne nieadekwatne do przeprowadzenia analizy PCA zostały przez Ciebie usunięte oraz \n"
+                                 "że ustawiłeś/ustawiłaś typy wszystkich zmiennych na właściwe?")
+        confirmation_msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        confirmation_msg.setDefaultButton(QMessageBox.No)
+        user_choice = confirmation_msg.exec_()
 
-        if ret == 0:
-            self.prepare(normalization_type='std')
-        elif ret == 1:
-            self.prepare(normalization_type='quantile')
+        # Kontynuuj tylko jeśli użytkownik wybrał 'Yes'
+        if user_choice == QMessageBox.Yes:
+            msgBox = QMessageBox()
+            msgBox.setText("Wybierz rodzaj normalizacji")
+            msgBox.addButton(QPushButton('Standardowa'), QMessageBox.YesRole)
+            msgBox.addButton(QPushButton('Oparta na kwantylach'), QMessageBox.NoRole)
+            ret = msgBox.exec_()
+
+            if ret == 0:
+                self.prepare(normalization_type='std')
+            elif ret == 1:
+                self.prepare(normalization_type='quantile')
+        else:
+            # Użytkownik wybrał 'No', nic się nie dzieje
+            return
 
     # def prepare(self):
     #     try:
@@ -309,11 +324,14 @@ class MainWindow(QWidget):
     #         QMessageBox.critical(self, "Błąd", f"Nie udało się przygotować zbioru danych do analizy PCA: {e}")
 
     def prepare(self, normalization_type):
+        #QMessageBox.information(self, "Przygotowanie do analizy PCA",
+        #                        "Zanim przystąpisz do procedury bezpośrednio związanej z obsługą analizy PCA, zmień typy zmiennych, jeśli uważasz to za konieczne, oraz usuń te niepotrzebne.")
+
         try:
             self.data_instance.remove_nan_rows()
             self.data_instance.save()
 
-            # Oblicz liczbę zmiennych
+            # Kontynuacja przygotowań do PCA...
             n_components = len(self.data_instance.get_df().columns)
 
             if normalization_type == 'std':
@@ -399,7 +417,7 @@ class MainWindow(QWidget):
         layout.addWidget(table)
 
         # Dodawanie przycisku zamknięcia
-        close_button = QPushButton("Zamknij")
+        close_button = QPushButton("Wyświetl i zapisz wykres PCA")
         close_button.clicked.connect(dialog.close)
         layout.addWidget(close_button)
 
@@ -434,9 +452,14 @@ class MainWindow(QWidget):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    #app.setStyle('Fusion')
     ex = MainWindow()
+    #ex.setStyleSheet("QWidget { background-color: white }")
     ex.show()
     app.setStyleSheet("""
+        QWidget { 
+            background-color: white     
+        }
         QWidget {
             font-size: 11px;
             font-family: Roboto;
@@ -458,7 +481,7 @@ if __name__ == '__main__':
             selection-background-color: #FF7F50; 
         }
         QTableWidget::item {
-            color: #FFD700; 
+            color: #000000; 
             font-family: Roboto;
         }
         QTableWidget QHeaderView::section {
@@ -470,6 +493,15 @@ if __name__ == '__main__':
         }
         QLabel {
             color: #DAA520; 
+            font-family: Roboto;
+        }
+        QLineEdit, QComboBox {
+        color: black; /* Ustawia kolor tekstu na czarny */
+        font-family: Roboto;
+        }
+        QComboBox QAbstractItemView {
+            color: black; /* Ustawia kolor tekstu elementów listy na czarny */
+            selection-background-color: #FF7F50; /* Kolor tła dla zaznaczonych elementów */
             font-family: Roboto;
         }
     """)

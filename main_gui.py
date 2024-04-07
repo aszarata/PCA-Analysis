@@ -2,7 +2,7 @@ import sys
 import os
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QFileDialog, QLabel, QTableWidgetItem, \
     QTableWidget, QStackedWidget, QDialog, QHBoxLayout, QLineEdit, QMessageBox, QInputDialog, QFormLayout, QSpacerItem, \
-    QSizePolicy
+    QSizePolicy, QBoxLayout
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap, QFont, QDropEvent, QDragEnterEvent
 from PyQt5.QtWidgets import QComboBox
@@ -21,6 +21,9 @@ class MainWindow(QWidget):
         self.stacked_widget = QStackedWidget()
         self.data_instance = DataManager()
         self.pca_handler = None
+        self.pca_done = False
+        self.kmeans_done = False
+        self.dbscan_done = False
         self.pca_done = False
         self.init_ui()
         self.setAcceptDrops(True)  # Włączamy obsługę przeciągania i upuszczania pliku csv
@@ -101,6 +104,7 @@ class MainWindow(QWidget):
 
         btn = QPushButton('Wybierz plik csv')
         btn.clicked.connect(self.open_file_name_dialog)
+        btn.setStyleSheet("QPushButton { width: 100px; height: 100px; }")
         layout.addWidget(btn)
 
         import_page.setLayout(layout)
@@ -108,47 +112,99 @@ class MainWindow(QWidget):
 
     def init_data_manipulation_page(self):
         manipulation_page = QWidget()
-        layout = QVBoxLayout()
+        # Ustawienie głównego układu pionowego
+        main_layout = QVBoxLayout()
+
+        # Ustawienie poziomego układu dla guzików kwadratowych
+        buttons_layout = QHBoxLayout()
 
         self.table_widget = EditableHeaderTableWidget(self)  # Używamy naszej niestandardowej klasy
-        layout.addWidget(self.table_widget)
+        buttons_layout.addWidget(self.table_widget)
 
-        # guzik do resetu do stanu poczatkowego
-        reset_button = QPushButton('Resetuj dane do stanu początkowego')
+        # # guzik do resetu do stanu poczatkowego
+        # reset_button = QPushButton('Resetuj dane do stanu początkowego')
+        # reset_button.clicked.connect(self.reset_data)
+        # layout.addWidget(reset_button)
+        #
+        # # guzik do cofania zmian do poprzednio zapisanego stanu
+        # undo_button = QPushButton('Cofnij ostatnią zmianę')
+        # undo_button.clicked.connect(self.undo_changes)
+        # layout.addWidget(undo_button)
+        #
+        # # guzik do zmiany typu zmiennej
+        # change_type_button = QPushButton('Zmień typ zmiennej')
+        # change_type_button.clicked.connect(self.open_change_type_dialog)
+        # layout.addWidget(change_type_button)
+        #
+        # # guzik do usuwania nazwy zmiennej
+        # delete_button = QPushButton('Usuń zmienną')
+        # delete_button.clicked.connect(self.open_delete_dialog)
+        # layout.addWidget(delete_button)
+
+        # Stworzenie i stylizacja guzika reset
+        reset_button = QPushButton('Resetuj dane')
         reset_button.clicked.connect(self.reset_data)
-        layout.addWidget(reset_button)
+        reset_button.setStyleSheet("QPushButton { width: 100px; height: 100px; }")  # Ustawia wymiary kwadratowe
+        buttons_layout.addWidget(reset_button)
 
-        # guzik do cofania zmian do poprzednio zapisanego stanu
-        undo_button = QPushButton('Cofnij ostatnią zmianę')
+        # Stworzenie i stylizacja guzika undo
+        undo_button = QPushButton('Cofnij zmianę')
         undo_button.clicked.connect(self.undo_changes)
-        layout.addWidget(undo_button)
+        undo_button.setStyleSheet("QPushButton { width: 100px; height: 100px; }")  # Ustawia wymiary kwadratowe
+        buttons_layout.addWidget(undo_button)
 
-        # guzik do zmiany typu zmiennej
-        change_type_button = QPushButton('Zmień typ zmiennej')
+        # Stworzenie i stylizacja guzika do zmiany typu
+        change_type_button = QPushButton('Zmień typ')
         change_type_button.clicked.connect(self.open_change_type_dialog)
-        layout.addWidget(change_type_button)
+        change_type_button.setStyleSheet("QPushButton { width: 100px; height: 100px; }")  # Ustawia wymiary kwadratowe
+        buttons_layout.addWidget(change_type_button)
 
-        # guzik do usuwania nazwy zmiennej
+        # Stworzenie i stylizacja guzika do usuwania nazwy zmiennej
         delete_button = QPushButton('Usuń zmienną')
         delete_button.clicked.connect(self.open_delete_dialog)
-        layout.addWidget(delete_button)
+        delete_button.setStyleSheet("QPushButton { width: 100px; height: 100px; }")  # Ustawia wymiary kwadratowe
+        buttons_layout.addWidget(delete_button)
 
-        # guzik do przygotowania do analizy pca -> one-hot-encode plus standaryzacja calego zbioru danych
-        prepare_button = QPushButton('Analiza PCA')
-        prepare_button.clicked.connect(self.open_prepare_dialog)
-        layout.addWidget(prepare_button)
+        # # guzik do przygotowania do analizy pca -> one-hot-encode plus standaryzacja calego zbioru danych
+        # prepare_button = QPushButton('Analiza PCA')
+        # prepare_button.clicked.connect(self.open_prepare_dialog)
+        # layout.addWidget(prepare_button)
+        #
+        # # guzik do uruchamiania algorytmu KMeans z sugestią liczby klastrów
+        # kmeans_suggestion_button = QPushButton('Grupowanie KMeans')
+        # kmeans_suggestion_button.clicked.connect(self.open_kmeans_suggestion_dialog)
+        # layout.addWidget(kmeans_suggestion_button)
+        #
+        # # guzik do uruchamiania algorytmu DBSCAN
+        # dbscan_clustering_button = QPushButton('Grupowanie DBSCAN')
+        # dbscan_clustering_button.clicked.connect(self.open_dbscan_dialog)
+        # layout.addWidget(dbscan_clustering_button)
+
+        # Dodanie układu z guzikami kwadratowymi do głównego układu
+        main_layout.addLayout(buttons_layout)
+
+        # Stworzenie i dodanie duzego guzika "Przygotowanie do PCA"
+        pca_button = QPushButton('Przygotowanie do PCA')
+        pca_button.clicked.connect(self.open_prepare_dialog)
+        pca_button.setStyleSheet(
+            "QPushButton { min-width: 400px; min-height: 50px; }")  # Ustawia większe wymiary dla duzego guzika
+        main_layout.addWidget(pca_button)
 
         # guzik do uruchamiania algorytmu KMeans z sugestią liczby klastrów
         kmeans_suggestion_button = QPushButton('Grupowanie KMeans')
         kmeans_suggestion_button.clicked.connect(self.open_kmeans_suggestion_dialog)
-        layout.addWidget(kmeans_suggestion_button)
+        kmeans_suggestion_button.setStyleSheet(
+            "QPushButton { min-width: 400px; min-height: 50px; }")  # Ustawia większe wymiary dla duzego guzika
+        main_layout.addWidget(kmeans_suggestion_button)
 
         # guzik do uruchamiania algorytmu DBSCAN
         dbscan_clustering_button = QPushButton('Grupowanie DBSCAN')
         dbscan_clustering_button.clicked.connect(self.open_dbscan_dialog)
-        layout.addWidget(dbscan_clustering_button)
+        dbscan_clustering_button.setStyleSheet(
+            "QPushButton { min-width: 400px; min-height: 50px; }")  # Ustawia większe wymiary dla duzego guzika
+        main_layout.addWidget(dbscan_clustering_button)
 
-        manipulation_page.setLayout(layout)
+        manipulation_page.setLayout(main_layout)
         self.stacked_widget.addWidget(manipulation_page)
 
     def dragEnterEvent(self, e):
@@ -221,7 +277,10 @@ class MainWindow(QWidget):
     def reset_data(self):
         try:
             self.data_instance.reset()
+            #self.pca_done = False
             self.pca_done = False
+            self.kmeans_done = False
+            self.dbscan_done = False
             self.display_data_in_table(self.data_instance.get_df())
             QMessageBox.information(self, "Reset danych", "Dane zostały zresetowane do stanu początkowego.")
         except Exception as e:
@@ -236,6 +295,10 @@ class MainWindow(QWidget):
             QMessageBox.critical(self, "Błąd", f"Nie udało się cofnąć zmian.")
 
     def open_prepare_dialog(self):
+        if self.pca_done:
+            QMessageBox.warning(self, "Operacja niemożliwa",
+                                "Analiza PCA została już wykonana. Jeśli chcesz wykonać ją ponownie proszę zresetować dane.")
+            return
         # Pytanie wstępne do użytkownika
         confirmation_msg = QMessageBox()
         confirmation_msg.setWindowTitle("Potwierdzenie")
@@ -299,27 +362,67 @@ class MainWindow(QWidget):
         pca_dialog.show()
 
     # W klasie rodzica (np. główne okno aplikacji)
-    def display_pca_plot(self):
-        # Zakładając, że pca_handler jest instancją PCAHandler
-        plt.figure(figsize=(10, 7))  # Ustawienie rozmiaru wykresu
-        self.pca_handler.plot_2d('pc1', 'pc2',
-                            'PCA - pierwsze dwa komponenty')  # Generowanie wykresu dla dwóch głównych komponentów
-
-        # Zapisywanie wykresu w folderze, z którego wczytano dane
-        if self.data_instance.last_file_path:  # Sprawdzanie, czy ścieżka do pliku została zapisana
-            directory = os.path.dirname(self.data_instance.last_file_path)
-            file_name = "PCA_plot.png"
-            save_path = os.path.join(directory, file_name)
-            plt.savefig(save_path)  # Zapisywanie wykresu
-            print(f"Wykres został zapisany w: {save_path}")
-
-        plt.show()  # Wyświetlenie wykresu
+    # def display_pca_plot(self):
+    #     # Zakładając, że pca_handler jest instancją PCAHandler
+    #     plt.figure(figsize=(10, 7))  # Ustawienie rozmiaru wykresu
+    #     self.pca_handler.plot_2d('pc1', 'pc2',
+    #                         'PCA - pierwsze dwa komponenty')  # Generowanie wykresu dla dwóch głównych komponentów
+    #
+    #     # Zapisywanie wykresu w folderze, z którego wczytano dane
+    #     if self.data_instance.last_file_path:  # Sprawdzanie, czy ścieżka do pliku została zapisana
+    #         directory = os.path.dirname(self.data_instance.last_file_path)
+    #         file_name = "PCA_plot.png"
+    #         save_path = os.path.join(directory, file_name)
+    #         plt.savefig(save_path)  # Zapisywanie wykresu
+    #         print(f"Wykres został zapisany w: {save_path}")
+    #
+    #     plt.show()  # Wyświetlenie wykresu
+    #
+    # def display_pca_results(self):
+    #     # Przygotowanie okna dialogowego
+    #     dialog = QDialog(self)
+    #     dialog.setWindowTitle("Wyniki analizy PCA")
+    #     dialog.setGeometry(100, 100, 600, 400)  # Zwiększony rozmiar dla lepszego wyświetlania tabeli
+    #     layout = QVBoxLayout(dialog)
+    #
+    #     # Tytuł
+    #     title_label = QLabel("Wartości dla komponentów PCA:")
+    #     layout.addWidget(title_label)
+    #
+    #     # Pobranie DataFrame z pca_handler
+    #     df = self.pca_handler.get_df()
+    #
+    #     # Tworzenie tabeli do wyświetlenia danych
+    #     table = QTableWidget(dialog)
+    #     table.setColumnCount(len(df.columns))
+    #     table.setRowCount(len(df.index))
+    #
+    #     # Ustawianie nagłówków kolumn
+    #     table.setHorizontalHeaderLabels(df.columns)
+    #
+    #     # Wypełnianie tabeli danymi
+    #     for row in range(df.shape[0]):
+    #         for col in range(df.shape[1]):
+    #             item = QTableWidgetItem(f"{df.iloc[row, col]:.2f}")
+    #             table.setItem(row, col, item)
+    #
+    #     table.resizeColumnsToContents()  # Dostosowanie szerokości kolumn do zawartości
+    #     layout.addWidget(table)
+    #
+    #     # Dodawanie przycisku zamknięcia
+    #     close_button = QPushButton("Wyświetl i zapisz wykres PCA")
+    #     close_button.clicked.connect(dialog.close)
+    #     layout.addWidget(close_button)
+    #
+    #     dialog.setLayout(layout)
+    #     dialog.exec_()
 
     def display_pca_results(self):
         # Przygotowanie okna dialogowego
         dialog = QDialog(self)
         dialog.setWindowTitle("Wyniki analizy PCA")
-        dialog.setGeometry(100, 100, 600, 400)  # Zwiększony rozmiar dla lepszego wyświetlania tabeli
+        dialog.setGeometry(100, 100, 600, 600)  # Zwiększony rozmiar dla dodatkowych elementów
+
         layout = QVBoxLayout(dialog)
 
         # Tytuł
@@ -343,16 +446,51 @@ class MainWindow(QWidget):
                 item = QTableWidgetItem(f"{df.iloc[row, col]:.2f}")
                 table.setItem(row, col, item)
 
-        table.resizeColumnsToContents()  # Dostosowanie szerokości kolumn do zawartości
+        table.resizeColumnsToContents()
         layout.addWidget(table)
 
-        # Dodawanie przycisku zamknięcia
-        close_button = QPushButton("Wyświetl i zapisz wykres PCA")
-        close_button.clicked.connect(dialog.close)
-        layout.addWidget(close_button)
+        # Pole do wprowadzenia ścieżki zapisu
+        save_path_input = QLineEdit(dialog)
+        save_path_input.setPlaceholderText("Wprowadź ścieżkę do zapisu...")
+        if self.data_instance.last_file_path:  # Domyślna ścieżka
+            save_path_input.setText(os.path.dirname(self.data_instance.last_file_path))
+        layout.addWidget(save_path_input)
+
+        # Dodawanie przycisku zapisu i wyświetlenia
+        save_and_show_button = QPushButton("Wyświetl wykres i zapisz aktualną wersję pliku")
+        layout.addWidget(save_and_show_button)
+
+        # Akcja przycisku
+        save_and_show_button.clicked.connect(lambda: self.save_and_display_pca(save_path_input.text(), df))
 
         dialog.setLayout(layout)
         dialog.exec_()
+
+    def save_and_display_pca(self, save_path, df):
+        if not save_path:
+            QMessageBox.warning(self, "Błąd", "Ścieżka do zapisu nie może być pusta.")
+            return
+
+        # Zapis DataFrame do pliku .csv
+        csv_file_path = os.path.join(save_path, "PCA_data.csv")
+        self.display_pca_csv_results(csv_file_path)  # Wywołanie nowej metody do wyświetlenia wyników
+        try:
+            df.to_csv(csv_file_path, index=False)
+            QMessageBox.information(self, "Zapisano dane", f"Dane PCA zostały zapisane do: {csv_file_path}")
+        except Exception as e:
+            QMessageBox.critical(self, "Błąd zapisu danych", f"Nie udało się zapisać danych: {str(e)}")
+
+        # Wyświetlenie i zapis wykresu PCA
+        plt.figure(figsize=(10, 7))
+        self.pca_handler.plot_2d('pc1', 'pc2', 'PCA - pierwsze dwa komponenty')
+        plot_file_path = os.path.join(save_path, "PCA_plot.png")
+        try:
+            plt.savefig(plot_file_path)
+            QMessageBox.information(self, "Zapisano wykres", f"Wykres PCA został zapisany do: {plot_file_path}")
+            plt.show()  # Opcjonalnie wyświetlenie wykresu
+        except Exception as e:
+            QMessageBox.critical(self, "Błąd zapisu wykresu", f"Nie udało się zapisać wykresu: {str(e)}")
+
 
     # Funkcja obsługująca kliknięcie przycisku
     def open_change_type_dialog(self):
@@ -375,6 +513,10 @@ class MainWindow(QWidget):
         if not hasattr(self, 'pca_done') or not self.pca_done:
             QMessageBox.warning(self, "Błąd",
                                 "Analiza PCA nie została zrealizowana. Proszę najpierw wykonać analizę PCA.")
+        if self.kmeans_done:
+            QMessageBox.warning(self, "Operacja niemożliwa",
+                                "Grupowanie KMeans zostało już wykonane. Jeśli chcesz wykonać ją ponownie proszę zresetować dane.")
+            return
         else:
             dialog = KMeansSuggestionDialog(self)
             dialog.exec_()
@@ -384,9 +526,44 @@ class MainWindow(QWidget):
         if not hasattr(self, 'pca_done') or not self.pca_done:
             QMessageBox.warning(self, "Błąd",
                                 "Analiza PCA nie została zrealizowana. Proszę najpierw wykonać analizę PCA.")
+        if self.dbscan_done:
+            QMessageBox.warning(self, "Operacja niemożliwa",
+                                "Grupowanie DBSCAN zostało już wykonane. Jeśli chcesz wykonać ją ponownie proszę zresetować dane.")
+            return
         else:
             dialog = DBSCANDialog(self)
             dialog.exec_()
+
+    def display_pca_csv_results(self, file_path):
+        # Tworzenie okna dialogowego
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Wyniki analizy PCA z pliku CSV")
+        dialog.setGeometry(100, 100, 800, 600)
+
+        layout = QVBoxLayout()
+
+        # Tworzenie i konfiguracja QTableWidget
+        table = QTableWidget(dialog)
+        layout.addWidget(table)
+
+        # Wczytywanie danych z pliku CSV
+        df = pd.read_csv(file_path)
+
+        # Ustawianie liczby wierszy i kolumn na podstawie DataFrame
+        table.setRowCount(df.shape[0])
+        table.setColumnCount(df.shape[1])
+        table.setHorizontalHeaderLabels(df.columns)
+
+        # Wypełnianie tabeli danymi
+        for i, row in df.iterrows():
+            for j, value in enumerate(row):
+                item = QTableWidgetItem(str(value))
+                table.setItem(i, j, item)
+
+        table.resizeColumnsToContents()
+
+        dialog.setLayout(layout)
+        dialog.exec_()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

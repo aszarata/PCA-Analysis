@@ -145,6 +145,7 @@ class KMeansSuggestionDialog(QDialog):
 
     def run_kmeans(self, optimal_clusters):
         try:
+            self.parent().data_instance.save()
             self.pca_handler.kmeans_clustering(num_clusters=optimal_clusters)
             QMessageBox.information(self, "KMeans Clustering",
                                     f"Klastrowanie KMeans zakończone dla {optimal_clusters} klastrów.")
@@ -193,6 +194,7 @@ class DBSCANDialog(QDialog):
             optimal_eps = self.pca_handler.suggest_clusters_dbscan(min_samples=min_samples, draw_graph=True)
             QMessageBox.information(self, "Sugerowane EPS", f"Zasugerowana wartość optimal eps: {optimal_eps}")
 
+            self.parent().data_instance.save()
             self.pca_handler.dbscan_clustering(eps=optimal_eps, min_samples=min_samples)
             self.display_dbscan_results()
 

@@ -93,7 +93,7 @@ class DeleteDialog(QDialog):
                 QMessageBox.information(self, "Sukces", f"Zmienna '{variable_name}' została usunięta.")
                 self.close()
             except Exception as e:
-                QMessageBox.critical(self, "Błąd", f"Nie udało się usunąć zmiennej: {e}")
+                QMessageBox.critical(self, "Błąd", f"Nie udało się usunąć wskazanej zmiennej.")
         else:
             QMessageBox.warning(self, "Uwaga", "Proszę wybrać nazwę zmiennej do usunięcia.")
 

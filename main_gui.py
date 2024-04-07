@@ -20,6 +20,8 @@ class MainWindow(QWidget):
         self.label = None
         self.stacked_widget = QStackedWidget()
         self.data_instance = DataManager()
+        self.pca_handler = None
+        self.pca_done = False
         self.init_ui()
         self.setAcceptDrops(True)  # Włączamy obsługę przeciągania i upuszczania pliku csv
 
@@ -53,7 +55,9 @@ class MainWindow(QWidget):
         logo.setAlignment(Qt.AlignCenter)
 
         start_button = QPushButton("Rozpocznij")
+        start_button.setFixedSize(400, 80)
         start_button.clicked.connect(self.go_to_import_page)
+        layout.addWidget(start_button, 0, Qt.AlignCenter)
 
         layout.addWidget(title)
 
@@ -109,6 +113,16 @@ class MainWindow(QWidget):
         self.table_widget = EditableHeaderTableWidget(self)  # Używamy naszej niestandardowej klasy
         layout.addWidget(self.table_widget)
 
+        # guzik do resetu do stanu poczatkowego
+        reset_button = QPushButton('Resetuj dane do stanu początkowego')
+        reset_button.clicked.connect(self.reset_data)
+        layout.addWidget(reset_button)
+
+        # guzik do cofania zmian do poprzednio zapisanego stanu
+        undo_button = QPushButton('Cofnij ostatnią zmianę')
+        undo_button.clicked.connect(self.undo_changes)
+        layout.addWidget(undo_button)
+
         # guzik do zmiany typu zmiennej
         change_type_button = QPushButton('Zmień typ zmiennej')
         change_type_button.clicked.connect(self.open_change_type_dialog)
@@ -119,56 +133,20 @@ class MainWindow(QWidget):
         delete_button.clicked.connect(self.open_delete_dialog)
         layout.addWidget(delete_button)
 
-        # guzik do resetu do stanu poczatkowego
-        # Add reset button here
-        reset_button = QPushButton('Resetuj dane do stanu początkowego')
-        reset_button.clicked.connect(self.reset_data)
-        layout.addWidget(reset_button)
-
-        # guzik do cofania zmian do poprzednio zapisanego stanu
-        undo_button = QPushButton('Cofnij ostatnią zmianę')
-        undo_button.clicked.connect(self.undo_changes)
-        layout.addWidget(undo_button)
-
-        # # guzik do normalizacji_std
-        # normalize_std_button = QPushButton('Normalizuj zmienną (standardowa normalizacja)')
-        # normalize_std_button.clicked.connect(self.open_normalize_std_dialog)
-        # layout.addWidget(normalize_std_button)
-
-        # # guzik do normalizacji_q
-        # normalize_q_button = QPushButton('Normalizuj zmienną (normalizacja oparta na kwantylu)')
-        # normalize_q_button.clicked.connect(self.open_normalize_q_dialog)
-        # layout.addWidget(normalize_q_button)
-
-        # # guzik do standaryzacji/normalizacji calego zbioru danych
-        # standarize_button = QPushButton('Normalizacja całego zbioru danych')
-        # standarize_button.clicked.connect(self.open_standarize_dataset_dialog)
-        # layout.addWidget(standarize_button)
-        #
-        # # guzik do one-hot-encode
-        # onehot_encode_button = QPushButton('Metoda one-hot-encode dla zmiennej')
-        # onehot_encode_button.clicked.connect(self.open_onehot_encode_dialog)
-        # layout.addWidget(onehot_encode_button)
-
         # guzik do przygotowania do analizy pca -> one-hot-encode plus standaryzacja calego zbioru danych
-        prepare_button = QPushButton('Przygotowanie danych do analizy PCA')
+        prepare_button = QPushButton('Analiza PCA')
         prepare_button.clicked.connect(self.open_prepare_dialog)
         layout.addWidget(prepare_button)
 
-        # # guzik do uruchamiania analizy PCA
-        # pca_button = QPushButton('Uruchom Analizę PCA')
-        # pca_button.clicked.connect(self.open_pca_dialog)
-        # layout.addWidget(pca_button)
+        # guzik do uruchamiania algorytmu KMeans z sugestią liczby klastrów
+        kmeans_suggestion_button = QPushButton('Grupowanie KMeans')
+        kmeans_suggestion_button.clicked.connect(self.open_kmeans_suggestion_dialog)
+        layout.addWidget(kmeans_suggestion_button)
 
-        # guzik do kmeans
-        kmeans_button = QPushButton('Uruchom KMeans')
-        kmeans_button.clicked.connect(self.open_kmeans_dialog)
-        layout.addWidget(kmeans_button)
-
-        # guzik do dbscan
-        dbscan_button = QPushButton('Uruchom DBSCAN')
-        dbscan_button.clicked.connect(self.open_dbscan_dialog)
-        layout.addWidget(dbscan_button)
+        # guzik do uruchamiania algorytmu DBSCAN
+        dbscan_clustering_button = QPushButton('Grupowanie DBSCAN')
+        dbscan_clustering_button.clicked.connect(self.open_dbscan_dialog)
+        layout.addWidget(dbscan_clustering_button)
 
         manipulation_page.setLayout(layout)
         self.stacked_widget.addWidget(manipulation_page)
@@ -202,7 +180,7 @@ class MainWindow(QWidget):
 
             # Sprawdzanie, czy DataFrame ma więcej niż jedną kolumnę jako wskazówkę, że separator może być niewłaściwy
             if self.data_instance.df.shape[1] < 2:
-                raise ValueError("Wygląda na to, że podano niewłaściwy separator. Proszę spróbować z innym.")
+                QMessageBox.critical(self, "Wygląda na to, że podano niewłaściwy separator. Proszę spróbować z innym.")
 
             self.stacked_widget.setCurrentIndex(2)
             self.display_data_in_table(self.data_instance.get_df())
@@ -241,8 +219,13 @@ class MainWindow(QWidget):
         self.delete_dialog.show()
 
     def reset_data(self):
-        self.data_instance.reset()
-        self.display_data_in_table(self.data_instance.get_df())
+        try:
+            self.data_instance.reset()
+            self.pca_done = False
+            self.display_data_in_table(self.data_instance.get_df())
+            QMessageBox.information(self, "Reset danych", "Dane zostały zresetowane do stanu początkowego.")
+        except Exception as e:
+            QMessageBox.critical(self, "Błąd", f"Nie udało się zresetować danych.")
 
     def undo_changes(self):
         try:
@@ -250,37 +233,7 @@ class MainWindow(QWidget):
             self.display_data_in_table(self.data_instance.get_df())
             QMessageBox.information(self, "Cofnięto zmiany", "Zmiany zostały cofnięte do ostatniego zapisanego stanu.")
         except Exception as e:
-            QMessageBox.critical(self, "Błąd", f"Nie udało się cofnąć zmian: {e}")
-
-    def open_normalize_std_dialog(self):
-        variable_name, ok = QInputDialog.getItem(self, "Wybierz zmienną do normalizacji", "Zmienna:",
-                                                 self.data_instance.get_df().columns.tolist(), 0, False)
-        if ok and variable_name:
-            self.normalize_std_variable(variable_name)
-
-    def normalize_std_variable(self, variable_name):
-        try:
-            self.data_instance.save()
-            self.data_instance.normalize_std(variable_name)
-            self.display_data_in_table(self.data_instance.get_df())
-            QMessageBox.information(self, "Normalizacja", f"Zmienna '{variable_name}' została znormalizowana.")
-        except Exception as e:
-            QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zmiennej: {e}")
-
-    def open_normalize_q_dialog(self):
-        variable_name, ok = QInputDialog.getItem(self, "Wybierz zmienną do normalizacji", "Zmienna:",
-                                                 self.data_instance.get_df().columns.tolist(), 0, False)
-        if ok and variable_name:
-            self.normalize_q_variable(variable_name)
-
-    def normalize_q_variable(self, variable_name):
-        try:
-            self.data_instance.save()
-            self.data_instance.normalize_q(variable_name)
-            self.display_data_in_table(self.data_instance.get_df())  # Refresh the table to show the normalized data
-            QMessageBox.information(self, "Normalizacja", f"Zmienna '{variable_name}' została znormalizowana.")
-        except Exception as e:
-            QMessageBox.critical(self, "Błąd", f"Nie udało się znormalizować zmiennej: {e}")
+            QMessageBox.critical(self, "Błąd", f"Nie udało się cofnąć zmian.")
 
     def open_prepare_dialog(self):
         # Pytanie wstępne do użytkownika
@@ -288,7 +241,12 @@ class MainWindow(QWidget):
         confirmation_msg.setWindowTitle("Potwierdzenie")
         confirmation_msg.setText("Czy jesteś pewien/pewna, \n"
                                  "że zmienne nieadekwatne do przeprowadzenia analizy PCA zostały przez Ciebie usunięte oraz \n"
-                                 "że ustawiłeś/ustawiłaś typy wszystkich zmiennych na właściwe?")
+                                 "że ustawiłeś/ustawiłaś typy wszystkich zmiennych na właściwe?\n"
+                                 "\n"
+                                 "Aby analiza PCA działała poprawnie, to dla wszystkich danych numerycznych które w zapisie mają przecinek dziesiętny -> zmień typ zmiennej\n"
+                                 "\n"
+                                 "Jeśli wskażesz 'yes',\n"
+                                 "to na aktualnie wyświetlonych danych uruchomisz analizę PCA.")
         confirmation_msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         confirmation_msg.setDefaultButton(QMessageBox.No)
         user_choice = confirmation_msg.exec_()
@@ -309,24 +267,7 @@ class MainWindow(QWidget):
             # Użytkownik wybrał 'No', nic się nie dzieje
             return
 
-    # def prepare(self):
-    #     try:
-    #         self.data_instance.save()
-    #         for variable_name in self.data_instance.get_df().columns.tolist():
-    #             if self.data_instance.get_variable_type(variable_name) == 'categorical':
-    #                 self.data_instance.one_hot_encode(variable_name)
-    #         self.data_instance.standarize_dataset()
-    #         self.display_data_in_table(
-    #         self.data_instance.get_df())  # Refresh the table to show the standardized data
-    #         self.open_pca_dialog()
-    #         QMessageBox.information(self, "Przygotowanie do PCA", "Cały zbiór danych został przygotowany do analizy PCA.")
-    #     except Exception as e:
-    #         QMessageBox.critical(self, "Błąd", f"Nie udało się przygotować zbioru danych do analizy PCA: {e}")
-
     def prepare(self, normalization_type):
-        #QMessageBox.information(self, "Przygotowanie do analizy PCA",
-        #                        "Zanim przystąpisz do procedury bezpośrednio związanej z obsługą analizy PCA, zmień typy zmiennych, jeśli uważasz to za konieczne, oraz usuń te niepotrzebne.")
-
         try:
             self.data_instance.remove_nan_rows()
             self.data_instance.save()
@@ -351,28 +292,17 @@ class MainWindow(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Błąd", f"Nie udało się przygotować zbioru danych do analizy PCA: {e}")
 
-    # def open_pca_dialog(self):
-    #     self.pca_dialog = PCADialog(self)
-    #     self.pca_dialog.show()
-
     def open_pca_dialog(self, default_n_components):
         # Tworzenie instancji dialogu PCA z domyślną liczbą komponentów
         pca_dialog = PCADialog(self)
         pca_dialog.components_input.setText(str(default_n_components))  # Ustawienie domyślnej liczby komponentów
         pca_dialog.show()
 
-    # def display_pca_results(self, pca_handler):
-    #     self.display_data_in_table(pca_handler.get_df())
-    #
-    #     # Uruchomienie dialogu z wynikami PCA
-    #     pca_results_dialog = PCAResultsDialog(pca_handler, self)
-    #     pca_results_dialog.exec_()
-
     # W klasie rodzica (np. główne okno aplikacji)
-    def display_pca_plot(self, pca_handler):
+    def display_pca_plot(self):
         # Zakładając, że pca_handler jest instancją PCAHandler
         plt.figure(figsize=(10, 7))  # Ustawienie rozmiaru wykresu
-        pca_handler.plot_2d('pc1', 'pc2',
+        self.pca_handler.plot_2d('pc1', 'pc2',
                             'PCA - pierwsze dwa komponenty')  # Generowanie wykresu dla dwóch głównych komponentów
 
         # Zapisywanie wykresu w folderze, z którego wczytano dane
@@ -385,7 +315,7 @@ class MainWindow(QWidget):
 
         plt.show()  # Wyświetlenie wykresu
 
-    def display_pca_results(self, pca_handler):
+    def display_pca_results(self):
         # Przygotowanie okna dialogowego
         dialog = QDialog(self)
         dialog.setWindowTitle("Wyniki analizy PCA")
@@ -397,7 +327,7 @@ class MainWindow(QWidget):
         layout.addWidget(title_label)
 
         # Pobranie DataFrame z pca_handler
-        df = pca_handler.get_df()
+        df = self.pca_handler.get_df()
 
         # Tworzenie tabeli do wyświetlenia danych
         table = QTableWidget(dialog)
@@ -424,16 +354,6 @@ class MainWindow(QWidget):
         dialog.setLayout(layout)
         dialog.exec_()
 
-    def open_kmeans_dialog(self):
-        pca_handler = self.data_instance.PCA(n_components=2)  # Można dostosować liczbę komponentów
-        clustering_dialog = ClusteringResultsDialog(pca_handler, 'KMeans', self)
-        clustering_dialog.exec_()
-
-    def open_dbscan_dialog(self):
-        pca_handler = self.data_instance.PCA(n_components=2)  # Można dostosować liczbę komponentów
-        clustering_dialog = ClusteringResultsDialog(pca_handler, 'DBSCAN', self)
-        clustering_dialog.exec_()
-
     # Funkcja obsługująca kliknięcie przycisku
     def open_change_type_dialog(self):
         variable_name, ok = QInputDialog.getItem(self, "Wybierz zmienną do zmiany typu", "Zmienna:",
@@ -448,13 +368,29 @@ class MainWindow(QWidget):
             self.display_data_in_table(self.data_instance.get_df())  # Odśwież tabelę, aby pokazać zmiany
             QMessageBox.information(self, "Zmiana typu", f"Typ zmiennej '{variable_name}' został zmieniony.")
         except Exception as e:
-            QMessageBox.critical(self, "Błąd", f"Nie udało się zmienić typu zmiennej: {e}")
+            QMessageBox.critical(self, "Błąd", f"Nie udało się zmienić typu wskazanej zmiennej.")
+
+    def open_kmeans_suggestion_dialog(self):
+        # Sprawdzenie, czy analiza PCA została wykonana
+        if not hasattr(self, 'pca_done') or not self.pca_done:
+            QMessageBox.warning(self, "Błąd",
+                                "Analiza PCA nie została zrealizowana. Proszę najpierw wykonać analizę PCA.")
+        else:
+            dialog = KMeansSuggestionDialog(self)
+            dialog.exec_()
+
+    def open_dbscan_dialog(self):
+        # Sprawdzenie, czy analiza PCA została wykonana
+        if not hasattr(self, 'pca_done') or not self.pca_done:
+            QMessageBox.warning(self, "Błąd",
+                                "Analiza PCA nie została zrealizowana. Proszę najpierw wykonać analizę PCA.")
+        else:
+            dialog = DBSCANDialog(self)
+            dialog.exec_()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    #app.setStyle('Fusion')
     ex = MainWindow()
-    #ex.setStyleSheet("QWidget { background-color: white }")
     ex.show()
     app.setStyleSheet("""
         QWidget { 

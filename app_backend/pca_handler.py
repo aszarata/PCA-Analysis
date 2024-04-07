@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.metrics import pairwise_distances
 
+
 class PCAHandler:
     """
     Object responsible for handling data returned by PCA analysis from 
@@ -15,10 +16,10 @@ class PCAHandler:
     def __init__(self, data: pd.DataFrame) -> None:
         if not isinstance(data, pd.DataFrame):
             raise TypeError("Input data must be a pandas DataFrame.")
-        
+
         if len(data.columns) < 2:
             raise ValueError("Input DataFrame must have at least two columns.")
-        
+
         self.df = data.copy()
 
         # Rename columns
@@ -46,17 +47,17 @@ class PCAHandler:
         """
         if x_component not in self.df.columns or y_component not in self.df.columns:
             raise ValueError("Invalid component name. Make sure the specified components exist in the DataFrame.")
-    
+
         plt.scatter(self.df[x_component], self.df[y_component], alpha=0.5, c=self.labels)
-    
+
         plt.xlabel(x_component)
         plt.ylabel(y_component)
-    
+
         plt.title(title)
-    
+
         return plt
-    
-     # def plot_2d(self, x_component: str, y_component: str, title: str = None, ax=None):
+
+    # def plot_2d(self, x_component: str, y_component: str, title: str = None, ax=None):
     #     """
     #     Generates a 2D scatter plot on the given axes.
     #
@@ -145,7 +146,7 @@ class PCAHandler:
         """
         if num_clusters <= 0:
             raise ValueError("Number of clusters must be greater than zero.")
-        
+
         kmeans = KMeans(n_clusters=num_clusters, n_init='auto')
         self.labels = kmeans.fit_predict(self.df)
 
@@ -178,7 +179,7 @@ class PCAHandler:
         knee_index = np.argmax(acceleration) + 2
 
         if draw_graph:
-            plt.plot(range(1, len(acceleration)+1), acceleration, marker='o')
+            plt.plot(range(1, len(acceleration) + 1), acceleration, marker='o')
             plt.xlabel('Number of clusters')
             plt.ylabel('Distortion')
             plt.title('Elbow Method for Optimal k - Second derivative')
@@ -216,11 +217,11 @@ class PCAHandler:
         """
         if min_samples <= 0:
             raise ValueError("Minimum number of samples must be greater than zero.")
-            
+
         # Calculate pairwise distances between points
         distance_matrix = pairwise_distances(self.df)
         max_distance = np.max(distance_matrix)
-        
+
         # Choose range of epsilon values as percentage of max distance
         eps_values = np.linspace(0.1 * max_distance, 0.9 * max_distance, 5)
 

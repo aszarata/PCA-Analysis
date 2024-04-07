@@ -460,37 +460,80 @@ class MainWindow(QWidget):
         save_and_show_button = QPushButton("Wyświetl wykres i zapisz aktualną wersję pliku")
         layout.addWidget(save_and_show_button)
 
-        # Akcja przycisku
-        save_and_show_button.clicked.connect(lambda: self.save_and_display_pca(save_path_input.text(), df))
+        # Zmiana w akcji przycisku, aby teraz wywołać metodę wybierającą folder
+        save_and_show_button.clicked.connect(self.prompt_save_folder_and_display_pca)
 
         dialog.setLayout(layout)
         dialog.exec_()
 
+    def prompt_save_folder_and_display_pca(self):
+        # Użytkownik wybiera folder
+        save_path = QFileDialog.getExistingDirectory(self, "Wybierz folder do zapisu")
+        if save_path:
+            # Jeśli folder został wybrany, przekazujemy tę ścieżkę wraz z DataFrame do metody zapisu
+            self.save_and_display_pca(save_path, self.pca_handler.get_df())
+        else:
+            QMessageBox.warning(self, "Błąd", "Nie wybrano folderu do zapisu.")
+
+    # def save_and_display_pca(self, save_path, df):
+    #     # Proces zapisu danych i wykresu wykorzystujący wybraną ścieżkę
+    #     if not save_path:
+    #         QMessageBox.warning(self, "Błąd", "Ścieżka do zapisu nie może być pusta.")
+    #         return
+    #
+    #     # Zapis DataFrame do pliku .csv
+    #     csv_file_path = os.path.join(save_path, "PCA_data.csv")
+    #     self.display_pca_csv_results(csv_file_path)  # Wywołanie nowej metody do wyświetlenia wyników
+    #     try:
+    #         df.to_csv(csv_file_path, index=False)
+    #         QMessageBox.information(self, "Zapisano dane", f"Dane PCA zostały zapisane do: {csv_file_path}")
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Błąd zapisu danych", f"Nie udało się zapisać danych: {str(e)}")
+    #
+    #     # Wyświetlenie i zapis wykresu PCA
+    #     plt.figure(figsize=(10, 7))
+    #     self.pca_handler.plot_2d('pc1', 'pc2', 'PCA - pierwsze dwa komponenty')
+    #     plot_file_path = os.path.join(save_path, "PCA_plot.png")
+    #     try:
+    #         plt.savefig(plot_file_path)
+    #         QMessageBox.information(self, "Zapisano wykres", f"Wykres PCA został zapisany do: {plot_file_path}")
+    #         plt.show()  # Opcjonalnie wyświetlenie wykresu
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Błąd zapisu wykresu", f"Nie udało się zapisać wykresu: {str(e)}")
+
     def save_and_display_pca(self, save_path, df):
+        # Debug: wydrukuj ścieżkę do sprawdzenia
+        print(f"Ścieżka do zapisu: {save_path}")
+
         if not save_path:
             QMessageBox.warning(self, "Błąd", "Ścieżka do zapisu nie może być pusta.")
             return
 
         # Zapis DataFrame do pliku .csv
         csv_file_path = os.path.join(save_path, "PCA_data.csv")
-        self.display_pca_csv_results(csv_file_path)  # Wywołanie nowej metody do wyświetlenia wyników
+        # Dodatkowe wydrukowanie ścieżki pliku CSV dla debugowania
+        print(f"Ścieżka do pliku CSV: {csv_file_path}")
+
         try:
             df.to_csv(csv_file_path, index=False)
             QMessageBox.information(self, "Zapisano dane", f"Dane PCA zostały zapisane do: {csv_file_path}")
         except Exception as e:
             QMessageBox.critical(self, "Błąd zapisu danych", f"Nie udało się zapisać danych: {str(e)}")
+            return  # Dodano return, aby przerwać działanie metody w przypadku błędu
 
         # Wyświetlenie i zapis wykresu PCA
         plt.figure(figsize=(10, 7))
         self.pca_handler.plot_2d('pc1', 'pc2', 'PCA - pierwsze dwa komponenty')
         plot_file_path = os.path.join(save_path, "PCA_plot.png")
+        # Dodatkowe wydrukowanie ścieżki pliku wykresu dla debugowania
+        print(f"Ścieżka do pliku wykresu: {plot_file_path}")
+
         try:
             plt.savefig(plot_file_path)
             QMessageBox.information(self, "Zapisano wykres", f"Wykres PCA został zapisany do: {plot_file_path}")
             plt.show()  # Opcjonalnie wyświetlenie wykresu
         except Exception as e:
             QMessageBox.critical(self, "Błąd zapisu wykresu", f"Nie udało się zapisać wykresu: {str(e)}")
-
 
     # Funkcja obsługująca kliknięcie przycisku
     def open_change_type_dialog(self):

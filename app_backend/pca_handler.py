@@ -1,4 +1,5 @@
 from itertools import combinations
+from sklearn.metrics import silhouette_score
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ class PCAHandler:
     DataManager, including clustering and generating plots.
     """
 
-    def __init__(self, data: pd.DataFrame) -> None:
+    def __init__(self, data: pd.DataFrame, explained_variance) -> None:
         if not isinstance(data, pd.DataFrame):
             raise TypeError("Input data must be a pandas DataFrame.")
 
@@ -21,6 +22,7 @@ class PCAHandler:
             raise ValueError("Input DataFrame must have at least two columns.")
 
         self.df = data.copy()
+        self.explained_variance = explained_variance
 
         # Rename columns
         columns = [f'pc{i + 1}' for i in range(len(data.columns))]
@@ -55,6 +57,31 @@ class PCAHandler:
 
         plt.title(title)
 
+        return plt
+    
+    # Explained variance plot
+    def plot_explained_variance(self, cumulative: bool=True):
+        """
+        Plot explained variance ratio.
+
+        Args:
+            cumulative (bool): True: Shows the graph of Cumulative Explained Variance. False: Shows just the graph of Explained Variance. Defaults to True.
+
+        Returns:
+            plt: Matplotlib plot object.
+        """
+        num_components = len(self.explained_variance)
+        plt.figure(figsize=(8, 6))
+        if cumulative:
+            plt.plot(np.cumsum(self.explained_variance), marker='o') 
+            plt.title('Cumulative Explained Variance Ratio for Principal Components')
+        else:
+            plt.plot(self.explained_variance, marker='o') 
+            plt.title('Explained Variance Ratio for Principal Components')
+        plt.xlabel('Principal Component')
+        plt.ylabel('Explained Variance Ratio')
+        
+        
         return plt
 
     # def plot_2d(self, x_component: str, y_component: str, title: str = None, ax=None):
@@ -203,14 +230,49 @@ class PCAHandler:
         dbscan = DBSCAN(eps=eps, min_samples=min_samples)
         self.labels = dbscan.fit_predict(self.df)
 
-    # DBSCAN cluster suggestion
+
+
+    def suggest_clusters_kmeans(self, max_clusters: int = 10, draw_graph: bool = False) -> int:
+        """
+        Suggests the optimal number of clusters using silhouette score for K-means clustering.
+
+        Args:
+            max_clusters (int): Maximum number of clusters to consider.
+            draw_graph (bool):  Draw plot of silhouette scores for test purposes.
+
+        Returns:
+            int: Optimal number of clusters.
+        """
+        if max_clusters <= 1:
+            raise ValueError("Max clusters must be greater than 1.")
+
+        silhouette_scores = []
+        for i in range(2, max_clusters + 1):  # Start from 2 clusters for silhouette score
+            kmeans = KMeans(n_clusters=i, n_init='auto')
+            cluster_labels = kmeans.fit_predict(self.df)
+            silhouette_avg = silhouette_score(self.df, cluster_labels)
+            silhouette_scores.append(silhouette_avg)
+
+        optimal_cluster_index = np.argmax(silhouette_scores) + 2
+
+        if draw_graph:
+            plt.plot(range(2, max_clusters + 1), silhouette_scores, marker='o')
+            plt.xlabel('Number of clusters')
+            plt.ylabel('Silhouette Score')
+            plt.title('Silhouette Score for Optimal k')
+            plt.show()
+
+        return optimal_cluster_index
+
+
+    # DBSCAN cluster suggestion using silhouette score
     def suggest_clusters_dbscan(self, min_samples: int, draw_graph: bool = False) -> float:
         """
-        Suggests the optimal value of epsilon (eps) for DBSCAN clustering using k-distance graph.
+        Suggests the optimal value of epsilon (eps) for DBSCAN clustering using silhouette score.
 
         Args:
             min_samples (int): The number of samples in a neighborhood for a point to be considered as a core point.
-            draw_graph (bool): Draw plot of the second derivative for test purposes
+            draw_graph (bool): Draw plot of silhouette scores for test purposes.
 
         Returns:
             float: Optimal value of epsilon.
@@ -218,38 +280,28 @@ class PCAHandler:
         if min_samples <= 0:
             raise ValueError("Minimum number of samples must be greater than zero.")
 
-        # Calculate pairwise distances between points
+        silhouette_scores = []
+        # Choose range of epsilon values as percentage of max distance
         distance_matrix = pairwise_distances(self.df)
         max_distance = np.max(distance_matrix)
-
-        # Choose range of epsilon values as percentage of max distance
         eps_values = np.linspace(0.1 * max_distance, 0.9 * max_distance, 5)
 
-        distances = []
         for eps in eps_values:
             dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-            dbscan.fit(self.df)
-            # Calculate pairwise distances between points
-            distance_matrix = pairwise_distances(self.df)
-            # Sort and flatten distance matrix
-            sorted_distances = np.sort(distance_matrix.flatten())
-            distances.append(sorted_distances[min_samples])
+            cluster_labels = dbscan.fit_predict(self.df)
+            if len(np.unique(cluster_labels)) > 1:  # Silhouette score requires at least 2 clusters
+                silhouette_avg = silhouette_score(self.df, cluster_labels)
+                silhouette_scores.append(silhouette_avg)
+            else:
+                silhouette_scores.append(-1)  # If only one cluster, silhouette score is not meaningful
 
-        # Find the "knee" in the graph (optimal epsilon)
-        knee_index = np.argmax(np.gradient(distances))
+        optimal_eps_index = np.argmax(silhouette_scores)
 
         if draw_graph:
-            plt.plot(eps_values, distances, marker='o')
+            plt.plot(eps_values, silhouette_scores, marker='o')
             plt.xlabel('Epsilon (distance)')
-            plt.ylabel('Minimum Distance')
-            plt.title('K-Distance Graph for Optimal eps')
+            plt.ylabel('Silhouette Score')
+            plt.title('Silhouette Score for Optimal eps')
             plt.show()
 
-            # Plot the second derivative for test purposes
-            plt.plot(eps_values, np.gradient(distances))
-            plt.xlabel('Epsilon (distance)')
-            plt.ylabel('Second Derivative')
-            plt.title('Second Derivative of Distance')
-            plt.show()
-
-        return eps_values[knee_index]
+        return eps_values[optimal_eps_index]

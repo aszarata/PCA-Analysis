@@ -165,10 +165,14 @@ class DataManager:
 
             if translated_type == 'categorical':
                 # Convert comma-separated decimal numbers to float
-                self.df[name] = self.df[name].str.replace(',', '.').astype(float)
+                try:
+                    self.df[name] = self.df[name].astype(str).str.replace(',', '.').astype(float)
+                except ValueError:
+                    raise ValueError(f"Cannot convert column '{name}' to numeric. Ensure that all values, including comma-separated decimals, are convertible to float.")
+                
             else:
-                # Convert categorical to numerical
-                self.df[name] = self.df[name].astype('category')
+                # Convert numerical to categorical
+                self.df[name] = self.df[name].astype('object')
         except KeyError:
             raise KeyError(f"Variable '{name}' not found in DataFrame.")
         except Exception as e:
@@ -302,9 +306,10 @@ class DataManager:
         try:
             pca_data = PCA(n_components=n_components)
             principal_components = pca_data.fit_transform(self.df)  # PCA Analysis
+            explained_variance = pca_data.explained_variance_ratio_ # Explained variance
 
-            pca_df = pd.DataFrame(data=principal_components, columns=None)  # Prepare PCA object
+            pca_df = pd.DataFrame(data=principal_components,  columns=None)  # Prepare PCA object
 
-            return PCAHandler(pca_df)
+            return PCAHandler(pca_df, explained_variance=explained_variance)
         except Exception as e:
             raise Exception(f"An error occurred during PCA analysis: {str(e)}")

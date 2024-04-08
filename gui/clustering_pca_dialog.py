@@ -158,7 +158,7 @@ class KMeansSuggestionDialog(QDialog):
         form_layout.addRow("Maksymalna liczba klastrów:", self.max_clusters_input)
         # form_layout.addRow(self.draw_graph_checkbox)
 
-        self.run_button = QPushButton("Podaj optymalną liczbę klastrów wraz z wykresem")
+        self.run_button = QPushButton("Podaj optymalną liczbę klastrów")
         self.run_button.clicked.connect(self.run_suggestion)
 
         layout.addLayout(form_layout)
@@ -179,7 +179,7 @@ class KMeansSuggestionDialog(QDialog):
         try:
             # Zakładamy, że data_instance posiada metodę suggest_clusters_kmeans
             optimal_clusters = self.pca_handler.suggest_clusters_kmeans(max_clusters=max_clusters,
-                                                                        draw_graph=True)
+                                                                        draw_graph=False)
             QMessageBox.information(self, "Sugerowana liczba klastrów", f"Optymalna liczba klastrów: {optimal_clusters}")
 
             # if draw_graph:
@@ -234,7 +234,7 @@ class DBSCANDialog(QDialog):
         self.min_samples_input = QLineEdit()
         form_layout.addRow("Min samples:", self.min_samples_input)
 
-        self.run_button = QPushButton("Zasugeruj i pokaż wykres")
+        self.run_button = QPushButton("Zasugeruj")
         self.run_button.clicked.connect(self.run_dbscan_suggestion)
         layout.addLayout(form_layout)
         layout.addWidget(self.run_button)
@@ -247,7 +247,7 @@ class DBSCANDialog(QDialog):
 
         min_samples = int(min_samples)
         try:
-            optimal_eps = self.pca_handler.suggest_clusters_dbscan(min_samples=min_samples, draw_graph=True)
+            optimal_eps = self.pca_handler.suggest_clusters_dbscan(min_samples=min_samples, draw_graph=False)
             QMessageBox.information(self, "Sugerowane EPS", f"Zasugerowana wartość optimal eps: {optimal_eps}")
 
             self.parent().data_instance.save()

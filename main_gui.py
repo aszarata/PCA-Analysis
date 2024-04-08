@@ -531,7 +531,18 @@ class MainWindow(QWidget):
         try:
             plt.savefig(plot_file_path)
             QMessageBox.information(self, "Zapisano wykres", f"Wykres PCA został zapisany do: {plot_file_path}")
-            plt.show()  # Opcjonalnie wyświetlenie wykresu
+            # plt.show()  # Opcjonalnie wyświetlenie wykresu
+            # Pytanie o pokazanie dodatku
+            reply = QMessageBox.question(self, 'Pokazać dodatek?',
+                                         "Czy chcesz teraz zobaczyć również wykres wyjaśnionej wariancji?",
+                                         QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+            if reply == QMessageBox.Yes:
+                #plt.figure(figsize=(10, 7))
+                self.pca_handler.plot_explained_variance()
+
+            plt.show()
+
         except Exception as e:
             QMessageBox.critical(self, "Błąd zapisu wykresu", f"Nie udało się zapisać wykresu: {str(e)}")
 

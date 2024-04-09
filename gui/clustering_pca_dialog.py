@@ -128,6 +128,7 @@ class PlotDialog(QDialog):
         layout.addWidget(self.canvas)
 
     def plot(self, pca_handler, x_component, y_component, title):
+        
         self.figure.clear()
 
         ax = self.figure.add_subplot(111)

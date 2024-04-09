@@ -30,34 +30,50 @@ class PCAHandler:
 
         # Labels after clustering
         self.labels = None
+        self.group_features = None
 
     def get_df(self) -> pd.DataFrame:
         return self.df
 
-    # Two-dimensional plot
     def plot_2d(self, x_component: str, y_component: str, title: str = None) -> plt:
         """
         Generates a 2D scatter plot.
-    
+
         Args:
             x_component (str): Name of the component for x-axis.
             y_component (str): Name of the component for y-axis.
             title (str, optional): Title of the plot. Defaults to None.
-    
+            group_features (dict, optional): Dictionary containing feature names for each group. Defaults to None.
+
         Returns:
             plt: Matplotlib plot object.
         """
+        plt.figure(figsize=(10,8))
+
         if x_component not in self.df.columns or y_component not in self.df.columns:
             raise ValueError("Invalid component name. Make sure the specified components exist in the DataFrame.")
 
-        plt.scatter(self.df[x_component], self.df[y_component], alpha=0.5, c=self.labels)
+        scatter = plt.scatter(self.df[x_component], self.df[y_component], alpha=0.5, c=self.labels)
 
         plt.xlabel(x_component)
         plt.ylabel(y_component)
 
         plt.title(title)
 
+        if self.labels is not None:
+            handles, _ = scatter.legend_elements()
+            labels = [f'Cluster {i}\nKey features: {", ".join(self.group_features[i])}' for i in self.group_features.keys()]
+            plt.legend(handles, labels, loc='upper right')
+
+        pca_info = "PCA Components:\n"
+        pca_info += f"{x_component}: {self.explained_variance[0]:.2f}\n"
+        pca_info += f"{y_component}: {self.explained_variance[1]:.2f}\n"
+        
+        plt.text(0.05, 0.95, pca_info, transform=plt.gca().transAxes, fontsize=10,
+                 verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
         return plt
+
     
     # Explained variance plot
     def plot_explained_variance(self, cumulative: bool=True):
@@ -177,41 +193,15 @@ class PCAHandler:
         kmeans = KMeans(n_clusters=num_clusters, n_init='auto')
         self.labels = kmeans.fit_predict(self.df)
 
-    # K-means clusters suggestion
-    def suggest_clusters_kmeans(self, max_clusters: int = 10, draw_graph: bool = False) -> int:
-        """
-        Suggests the optimal number of clusters using the elbow method for K-means clustering.
+        cluster_centers = kmeans.cluster_centers_
 
-        Args:
-            max_clusters (int): Maximum number of clusters to consider.
-            draw_graph (bool):  Draw plot of the second derivative for test purposes
+        feature_names = self.df.columns
+        self.group_features = {}
 
-        Returns:
-            int: Optimal number of clusters.
-        """
-        if max_clusters <= 1:
-            raise ValueError("Max clusters must be greater than 1.")
+        for i, center in enumerate(cluster_centers):
+            group_features_indices = center.argsort()[-3:][::-1]  # top 3 features for each group
+            self.group_features[i] = [feature_names[idx] for idx in group_features_indices]
 
-        distortions = []
-        for i in range(1, max_clusters + 1):
-            tmp_df = self.df.copy()
-            kmeans = KMeans(n_clusters=i, n_init='auto')
-            kmeans.fit(tmp_df)
-            distortions.append(kmeans.inertia_)
-        # Calculate the change in distortion between consecutive cluster numbers
-        distortions_change = np.diff(distortions)
-        # Calculate the second derivative (acceleration) of the distortion change
-        acceleration = np.diff(distortions_change)
-        # Find the "knee" point where acceleration starts to decrease
-        knee_index = np.argmax(acceleration) + 2
-
-        if draw_graph:
-            plt.plot(range(1, len(acceleration) + 1), acceleration, marker='o')
-            plt.xlabel('Number of clusters')
-            plt.ylabel('Distortion')
-            plt.title('Elbow Method for Optimal k - Second derivative')
-            plt.show()
-        return knee_index
 
     # DBSCAN clustering
     def dbscan_clustering(self, eps: float, min_samples: int) -> None:
@@ -229,6 +219,19 @@ class PCAHandler:
 
         dbscan = DBSCAN(eps=eps, min_samples=min_samples)
         self.labels = dbscan.fit_predict(self.df)
+
+        unique_labels = np.unique(self.labels)
+        self.group_features = {}
+
+        for label in unique_labels:
+            if label == -1:
+                continue  # ignore noise points
+            group_indices = np.where(self.labels == label)[0]
+            group_data = self.df.iloc[group_indices]
+            group_center = np.mean(group_data, axis=0)
+            group_features_indices = group_center.argsort()[-3:][::-1]  # top 3 features for each group
+            self.group_features[label] = list(self.df.columns[group_features_indices])
+
 
 
 
@@ -289,11 +292,11 @@ class PCAHandler:
         for eps in eps_values:
             dbscan = DBSCAN(eps=eps, min_samples=min_samples)
             cluster_labels = dbscan.fit_predict(self.df)
-            if len(np.unique(cluster_labels)) > 1:  # Silhouette score requires at least 2 clusters
+            if len(np.unique(cluster_labels)) > 1:
                 silhouette_avg = silhouette_score(self.df, cluster_labels)
                 silhouette_scores.append(silhouette_avg)
             else:
-                silhouette_scores.append(-1)  # If only one cluster, silhouette score is not meaningful
+                silhouette_scores.append(-1)
 
         optimal_eps_index = np.argmax(silhouette_scores)
 
